@@ -19,6 +19,8 @@ package kuberuntime
 import (
 	"errors"
 	"fmt"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
+	podcheckpointclientset "k8s.io/podcheckpoint/pkg/client/clientset/versioned"
 	"os"
 	goruntime "runtime"
 	"time"
@@ -85,6 +87,7 @@ type kubeGenericRuntimeManager struct {
 	osInterface         kubecontainer.OSInterface
 	containerRefManager *kubecontainer.RefManager
 
+	podcheckpointClient podcheckpointclientset.Interface
 	// machineInfo contains the machine information.
 	machineInfo *cadvisorapi.MachineInfo
 
@@ -176,6 +179,7 @@ func NewKubeGenericRuntimeManager(
 	legacyLogProvider LegacyLogProvider,
 	logManager logs.ContainerLogManager,
 	runtimeClassManager *runtimeclass.Manager,
+	podcheckpointClient podcheckpointclientset.Interface,
 ) (KubeGenericRuntime, error) {
 	kubeRuntimeManager := &kubeGenericRuntimeManager{
 		recorder:            recorder,
@@ -196,6 +200,7 @@ func NewKubeGenericRuntimeManager(
 		logManager:          logManager,
 		runtimeClassManager: runtimeClassManager,
 		logReduction:        logreduction.NewLogReduction(identicalErrorDelay),
+		podcheckpointClient: podcheckpointClient,
 	}
 
 	typedVersion, err := kubeRuntimeManager.getTypedVersion()
@@ -652,6 +657,60 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 	return changes
 }
 
+// execute checkpoint containers in pod
+func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint, secret *v1.Secret) {
+	klog.Infof("invoke kubeGenericRuntimeManager.CheckpointPod ")
+	succeeded_once := false
+	failed_once := false
+
+	preDump := true
+	iterCount := 0
+	finalDump := false
+	for {
+		if preDump {
+			finalDump = false
+			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
+				fmt.Printf("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
+				podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointing
+				dump, err := m.checkpointContainer(pod, &(pod.Status.ContainerStatuses[i]), podcheckpoint, secret, preDump, iterCount)
+				if err != nil {
+					klog.Infof("Checkpoint %q round for container %s failed", iterCount, pod.Status.ContainerStatuses[i].Name)
+				}
+				finalDump = finalDump || dump
+			}
+			iterCount = iterCount + 1
+			preDump = finalDump
+		} else {
+			break
+		}
+	}
+	klog.Infof("Final Dump!!!")
+	for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
+		fmt.Printf("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
+		podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointing
+		_, err := m.checkpointContainer(pod, &(pod.Status.ContainerStatuses[i]), podcheckpoint, secret, preDump, iterCount)
+		if err != nil {
+			podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointFailed
+			failed_once = true
+			continue
+		}
+		podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointSucceeded
+		succeeded_once = true
+	}
+
+	if succeeded_once && !failed_once {
+		// Succeed to Checkpoint Pod
+		podcheckpoint.Status.Phase = v1alpha1.PodSucceeded
+	} else if succeeded_once && failed_once {
+		// Some Container in Pod Fail to Checkpoint
+		podcheckpoint.Status.Phase = v1alpha1.PodHalfFailed
+	} else {
+		// All Container in Pod Fail to Checkpoint
+		podcheckpoint.Status.Phase = v1alpha1.PodFailed
+	}
+
+}
+
 // SyncPod syncs the running pod into the desired pod by executing following steps:
 //
 //  1. Compute sandbox and container changes.
@@ -661,7 +720,7 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 //  5. Create ephemeral containers.
 //  6. Create init containers.
 //  7. Create normal containers.
-func (m *kubeGenericRuntimeManager) SyncPod(pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
+func (m *kubeGenericRuntimeManager) SyncPod(pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff, ossSecret *v1.Secret) (result kubecontainer.PodSyncResult) {
 	// Step 1: Compute sandbox and container changes.
 	podContainerChanges := m.computePodActions(pod, podStatus)
 	klog.V(3).Infof("computePodActions got %+v for pod %q", podContainerChanges, format.Pod(pod))
@@ -807,7 +866,7 @@ func (m *kubeGenericRuntimeManager) SyncPod(pod *v1.Pod, podStatus *kubecontaine
 
 		klog.V(4).Infof("Creating %v %+v in pod %v", typeName, spec.container, format.Pod(pod))
 		// NOTE (aramase) podIPs are populated for single stack and dual stack clusters. Send only podIPs.
-		if msg, err := m.startContainer(podSandboxID, podSandboxConfig, spec, pod, podStatus, pullSecrets, podIP, podIPs); err != nil {
+		if msg, err := m.startContainer(podSandboxID, podSandboxConfig, spec, pod, podStatus, pullSecrets, podIP, podIPs, ossSecret); err != nil {
 			startContainerResult.Fail(err, msg)
 			// known errors that are logged in other places are logged at higher levels here to avoid
 			// repetitive log spam

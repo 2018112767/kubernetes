@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
 	"net/url"
 	"reflect"
 	"sync"
@@ -58,6 +59,39 @@ type FakeRuntime struct {
 	Err               error
 	InspectErr        error
 	StatusErr         error
+}
+
+//func (f *FakeRuntime) SyncPod(pod *v1.Pod, _ *kubecontainer.PodStatus, _ []v1.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
+//	f.Lock()
+//	defer f.Unlock()
+//
+//	f.CalledFunctions = append(f.CalledFunctions, "SyncPod")
+//	f.StartedPods = append(f.StartedPods, string(pod.UID))
+//	for _, c := range pod.Spec.Containers {
+//		f.StartedContainers = append(f.StartedContainers, c.Name)
+//	}
+//	// TODO(random-liu): Add SyncResult for starting and killing containers
+//	if f.Err != nil {
+//		result.Fail(f.Err)
+//	}
+//	return
+//}
+
+func (f *FakeRuntime) SyncPod(pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff, ossSecret *v1.Secret) kubecontainer.PodSyncResult {
+	f.Lock()
+	defer f.Unlock()
+
+	var result kubecontainer.PodSyncResult
+	f.CalledFunctions = append(f.CalledFunctions, "SyncPod")
+	f.StartedPods = append(f.StartedPods, string(pod.UID))
+	for _, c := range pod.Spec.Containers {
+		f.StartedContainers = append(f.StartedContainers, c.Name)
+	}
+	// TODO(random-liu): Add SyncResult for starting and killing containers
+	if f.Err != nil {
+		result.Fail(f.Err)
+	}
+	return result
 }
 
 const FakeHost = "localhost:12345"
@@ -149,6 +183,10 @@ func (f *FakeRuntime) AssertCalls(calls []string) error {
 	return f.assertList(calls, f.CalledFunctions)
 }
 
+func (f *FakeRuntime) CheckpointPod(pod *v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint, secret *v1.Secret) {
+	return
+}
+
 func (f *FakeRuntime) AssertStartedPods(pods []string) error {
 	f.Lock()
 	defer f.Unlock()
@@ -222,22 +260,6 @@ func (f *FakeRuntime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 		}
 	}
 	return pods, f.Err
-}
-
-func (f *FakeRuntime) SyncPod(pod *v1.Pod, _ *kubecontainer.PodStatus, _ []v1.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
-	f.Lock()
-	defer f.Unlock()
-
-	f.CalledFunctions = append(f.CalledFunctions, "SyncPod")
-	f.StartedPods = append(f.StartedPods, string(pod.UID))
-	for _, c := range pod.Spec.Containers {
-		f.StartedContainers = append(f.StartedContainers, c.Name)
-	}
-	// TODO(random-liu): Add SyncResult for starting and killing containers
-	if f.Err != nil {
-		result.Fail(f.Err)
-	}
-	return
 }
 
 func (f *FakeRuntime) KillPod(pod *v1.Pod, runningPod kubecontainer.Pod, gracePeriodOverride *int64) error {

@@ -1,0 +1,24 @@
+# permissions for end users to edit podcheckpoints.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: podcheckpoint-editor-role
+rules:
+- apiGroups:
+  - podcheckpointcontroller.tecent.com
+  resources:
+  - podcheckpoints
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - podcheckpointcontroller.tecent.com
+  resources:
+  - podcheckpoints/status
+  verbs:
+  - get

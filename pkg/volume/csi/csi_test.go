@@ -426,7 +426,7 @@ func TestCSI_VolumeAll(t *testing.T) {
 			if _, err := os.Stat(dataFile); err != nil {
 				t.Fatalf("csiTest.VolumeAll meatadata JSON file not found: %s", dataFile)
 			}
-			t.Log("csiTest.VolumeAll JSON datafile generated OK:", dataFile)
+			t.Log("csiTest.VolumeAll JSON datafile pkg OK:", dataFile)
 
 			// ******** Volume Reconstruction ************* //
 			volPath := filepath.Dir(csiMounter.GetPath())

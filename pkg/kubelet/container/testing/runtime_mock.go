@@ -19,13 +19,14 @@ package testing
 import (
 	"context"
 	"io"
+	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
 	"time"
 
 	"github.com/stretchr/testify/mock"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/client-go/util/flowcontrol"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/volume"
@@ -33,6 +34,16 @@ import (
 
 type Mock struct {
 	mock.Mock
+}
+
+//func (r *Mock) SyncPod(pod *v1.Pod, status *kubecontainer.PodStatus, secrets []v1.Secret, backOff *flowcontrol.Backoff) kubecontainer.PodSyncResult {
+//	args := r.Called(pod, status, secrets, backOff)
+//	return args.Get(0).(kubecontainer.PodSyncResult)
+//}
+
+func (r *Mock) SyncPod(pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff, ossSecret *v1.Secret) kubecontainer.PodSyncResult {
+	args := r.Called(pod, podStatus, pullSecrets, backOff)
+	return args.Get(0).(kubecontainer.PodSyncResult)
 }
 
 var _ kubecontainer.Runtime = new(Mock)
@@ -70,11 +81,6 @@ func (r *Mock) Status() (*kubecontainer.RuntimeStatus, error) {
 func (r *Mock) GetPods(all bool) ([]*kubecontainer.Pod, error) {
 	args := r.Called(all)
 	return args.Get(0).([]*kubecontainer.Pod), args.Error(1)
-}
-
-func (r *Mock) SyncPod(pod *v1.Pod, status *kubecontainer.PodStatus, secrets []v1.Secret, backOff *flowcontrol.Backoff) kubecontainer.PodSyncResult {
-	args := r.Called(pod, status, secrets, backOff)
-	return args.Get(0).(kubecontainer.PodSyncResult)
 }
 
 func (r *Mock) KillPod(pod *v1.Pod, runningPod kubecontainer.Pod, gracePeriodOverride *int64) error {
@@ -155,4 +161,8 @@ func (r *Mock) ImageStats() (*kubecontainer.ImageStats, error) {
 // UpdatePodCIDR fulfills the cri interface.
 func (r *Mock) UpdatePodCIDR(c string) error {
 	return nil
+}
+
+func (r *Mock) CheckpointPod(pod *v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint, secret *v1.Secret) {
+	return
 }

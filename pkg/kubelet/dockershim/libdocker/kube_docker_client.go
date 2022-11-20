@@ -39,8 +39,8 @@ import (
 )
 
 // kubeDockerClient is a wrapped layer of docker client for kubelet internal use. This layer is added to:
-//	1) Redirect stream for exec and attach operations.
-//	2) Wrap the context in this layer to make the Interface cleaner.
+//  1. Redirect stream for exec and attach operations.
+//  2. Wrap the context in this layer to make the Interface cleaner.
 type kubeDockerClient struct {
 	// timeout is the timeout of short running docker operations.
 	timeout time.Duration
@@ -157,6 +157,35 @@ func (d *kubeDockerClient) StartContainer(id string) error {
 	ctx, cancel := d.getTimeoutContext()
 	defer cancel()
 	err := d.client.ContainerStart(ctx, id, dockertypes.ContainerStartOptions{})
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return ctxErr
+	}
+	return err
+}
+
+func (d *kubeDockerClient) StartContainerFromCheckpoint(id string, checkpoint string, checkpointDir string) error {
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	err := d.client.ContainerStart(ctx, id, dockertypes.ContainerStartOptions{
+		CheckpointID:  checkpoint,
+		CheckpointDir: checkpointDir,
+	})
+	if ctxErr := contextError(ctx); ctxErr != nil {
+		return ctxErr
+	}
+	return err
+}
+
+func (d *kubeDockerClient) CheckpointContainer(id string, checkpoint string, checkpointDir string, preDump bool) error {
+	fmt.Println("Invoke kubeDockerClient.CheckpointContainer")
+
+	ctx, cancel := d.getTimeoutContext()
+	defer cancel()
+	err := d.client.CheckpointCreate(ctx, id, dockertypes.CheckpointCreateOptions{
+		CheckpointID:  checkpoint,
+		CheckpointDir: checkpointDir,
+		Exit:          !preDump,
+	})
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return ctxErr
 	}

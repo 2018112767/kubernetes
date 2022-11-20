@@ -369,7 +369,7 @@ function kube::release::create_docker_images_for_server() {
     local docker_build_opts
     docker_build_opts=
     if [[ "${KUBE_BUILD_PULL_LATEST_IMAGES}" =~ [yY] ]]; then
-        docker_build_opts='--pull'
+        docker_build_opts=''
     fi
 
     for wrappable in $binaries; do

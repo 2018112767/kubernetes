@@ -115,7 +115,7 @@ func opaqueSecret() *v1.Secret {
 }
 
 // createdTokenSecret returns the ServiceAccountToken secret posted when creating a new token secret.
-// Named "default-token-xn8fg", since that is the first generated name after rand.Seed(1)
+// Named "default-token-xn8fg", since that is the first pkg name after rand.Seed(1)
 func createdTokenSecret(overrideName ...string) *v1.Secret {
 	return namedCreatedTokenSecret("default-token-xn8fg")
 }

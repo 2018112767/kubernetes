@@ -117,7 +117,7 @@ func TestGenerateAdds(t *testing.T) {
 			continue
 		}
 		if v.expectedCaps == nil && generatedCaps != nil {
-			t.Errorf("%s expected nil caps to be generated but got %v", k, generatedCaps)
+			t.Errorf("%s expected nil caps to be pkg but got %v", k, generatedCaps)
 			continue
 		}
 		if !reflect.DeepEqual(v.expectedCaps, generatedCaps) {
@@ -231,7 +231,7 @@ func TestGenerateDrops(t *testing.T) {
 			continue
 		}
 		if v.expectedCaps == nil && generatedCaps != nil {
-			t.Errorf("%s expected nil caps to be generated but got %#v", k, generatedCaps)
+			t.Errorf("%s expected nil caps to be pkg but got %#v", k, generatedCaps)
 			continue
 		}
 		if !reflect.DeepEqual(v.expectedCaps, generatedCaps) {

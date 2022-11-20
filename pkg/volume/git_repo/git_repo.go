@@ -222,10 +222,10 @@ func (b *gitRepoVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArg
 		// if target dir is '.', use the current dir
 		subdir = filepath.Join(dir)
 	case len(files) == 1:
-		// if target is not '.', use the generated folder
+		// if target is not '.', use the pkg folder
 		subdir = filepath.Join(dir, files[0].Name())
 	default:
-		// if target is not '.', but generated many files, it's wrong
+		// if target is not '.', but pkg many files, it's wrong
 		return fmt.Errorf("unexpected directory contents: %v", files)
 	}
 

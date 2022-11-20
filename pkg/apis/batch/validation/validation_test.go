@@ -86,7 +86,7 @@ func TestValidateJob(t *testing.T) {
 				Template:       validPodTemplateSpecForManual,
 			},
 		},
-		"generated selector": {
+		"pkg selector": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "myjob",
 				Namespace: metav1.NamespaceDefault,
@@ -535,7 +535,7 @@ func TestValidateCronJob(t *testing.T) {
 				},
 			},
 		},
-		"spec.jobTemplate.spec.selector: Invalid value: {\"matchLabels\":{\"a\":\"b\"}}: `selector` will be auto-generated": {
+		"spec.jobTemplate.spec.selector: Invalid value: {\"matchLabels\":{\"a\":\"b\"}}: `selector` will be auto-pkg": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "mycronjob",
 				Namespace: metav1.NamespaceDefault,

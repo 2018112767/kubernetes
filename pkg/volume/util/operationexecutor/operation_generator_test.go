@@ -37,7 +37,7 @@ import (
 )
 
 // this method just tests the volume plugin name that's used in CompleteFunc, the same plugin is also used inside the
-// generated func so there is no need to test the plugin name that's used inside generated function
+// pkg func so there is no need to test the plugin name that's used inside pkg function
 func TestOperationGenerator_GenerateUnmapVolumeFunc_PluginName(t *testing.T) {
 	type testcase struct {
 		name              string

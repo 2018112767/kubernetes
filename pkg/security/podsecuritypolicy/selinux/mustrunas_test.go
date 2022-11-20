@@ -75,7 +75,7 @@ func TestMustRunAsGenerate(t *testing.T) {
 	internalSELinuxOptions := &api.SELinuxOptions{}
 	v1.Convert_v1_SELinuxOptions_To_core_SELinuxOptions(opts.SELinuxOptions, internalSELinuxOptions, nil)
 	if !reflect.DeepEqual(generated, internalSELinuxOptions) {
-		t.Errorf("generated selinux does not equal configured selinux")
+		t.Errorf("pkg selinux does not equal configured selinux")
 	}
 }
 

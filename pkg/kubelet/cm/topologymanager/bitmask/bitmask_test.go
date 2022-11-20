@@ -624,7 +624,7 @@ func TestIterateBitMasks(t *testing.T) {
 			numMasks++
 		})
 
-		// Compare the number of masks generated to the expected amount.
+		// Compare the number of masks pkg to the expected amount.
 		if expectedNumMasks != numMasks {
 			t.Errorf("Expected to iterate %v masks, got %v", expectedNumMasks, numMasks)
 		}

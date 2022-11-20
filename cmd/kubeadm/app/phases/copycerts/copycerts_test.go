@@ -208,7 +208,7 @@ func TestDownloadCerts(t *testing.T) {
 		t.Fatalf("could not create certificate key: %v", err)
 	}
 
-	// Temporary directory where certificates will be generated
+	// Temporary directory where certificates will be pkg
 	tmpdir := testutil.SetupTempDir(t)
 	defer os.RemoveAll(tmpdir)
 	initConfiguration := testutil.GetDefaultInternalConfig(t)

@@ -141,8 +141,8 @@ func (spc *realStatefulPodControl) DeleteStatefulPod(set *apps.StatefulSet, pod 
 	return err
 }
 
-// recordPodEvent records an event for verb applied to a Pod in a StatefulSet. If err is nil the generated event will
-// have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a reason of v1.EventTypeWarning.
+// recordPodEvent records an event for verb applied to a Pod in a StatefulSet. If err is nil the pkg event will
+// have a reason of v1.EventTypeNormal. If err is not nil the pkg event will have a reason of v1.EventTypeWarning.
 func (spc *realStatefulPodControl) recordPodEvent(verb string, set *apps.StatefulSet, pod *v1.Pod, err error) {
 	if err == nil {
 		reason := fmt.Sprintf("Successful%s", strings.Title(verb))
@@ -158,7 +158,7 @@ func (spc *realStatefulPodControl) recordPodEvent(verb string, set *apps.Statefu
 }
 
 // recordClaimEvent records an event for verb applied to the PersistentVolumeClaim of a Pod in a StatefulSet. If err is
-// nil the generated event will have a reason of v1.EventTypeNormal. If err is not nil the generated event will have a
+// nil the pkg event will have a reason of v1.EventTypeNormal. If err is not nil the pkg event will have a
 // reason of v1.EventTypeWarning.
 func (spc *realStatefulPodControl) recordClaimEvent(verb string, set *apps.StatefulSet, pod *v1.Pod, claim *v1.PersistentVolumeClaim, err error) {
 	if err == nil {

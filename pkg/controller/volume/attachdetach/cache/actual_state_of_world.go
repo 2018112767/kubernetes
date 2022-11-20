@@ -51,7 +51,7 @@ type ActualStateOfWorld interface {
 	// If attached is set to true, it indicates the specified volume is already
 	// attached to the specified node. If attached set to false, it means that
 	// the volume is not confirmed to be attached to the node yet.
-	// A unique volume name is generated from the volumeSpec and returned on
+	// A unique volume name is pkg from the volumeSpec and returned on
 	// success.
 	// If volumeSpec is not an attachable volume plugin, an error is returned.
 	// If no volume with the name volumeName exists in the store, the volume is

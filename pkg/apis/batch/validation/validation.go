@@ -29,8 +29,8 @@ import (
 	apivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 )
 
-// ValidateGeneratedSelector validates that the generated selector on a controller object match the controller object
-// metadata, and the labels on the pod template are as generated.
+// ValidateGeneratedSelector validates that the pkg selector on a controller object match the controller object
+// metadata, and the labels on the pod template are as pkg.
 //
 // TODO: generalize for other controller objects that will follow the same pattern, such as ReplicaSet and DaemonSet, and
 // move to new location.  Replace batch.Job with an interface.
@@ -52,23 +52,23 @@ func ValidateGeneratedSelector(obj *batch.Job) field.ErrorList {
 
 	// If selector generation was requested, then expected labels must be
 	// present on pod template, and must match job's uid and name.  The
-	// generated (not-manual) selectors/labels ensure no overlap with other
+	// pkg (not-manual) selectors/labels ensure no overlap with other
 	// controllers.  The manual mode allows orphaning, adoption,
 	// backward-compatibility, and experimentation with new
 	// labeling/selection schemes.  Automatic selector generation should
 	// have placed certain labels on the pod, but this could have failed if
 	// the user added coflicting labels.  Validate that the expected
-	// generated ones are there.
+	// pkg ones are there.
 
 	allErrs = append(allErrs, apivalidation.ValidateHasLabel(obj.Spec.Template.ObjectMeta, field.NewPath("spec").Child("template").Child("metadata"), "controller-uid", string(obj.UID))...)
 	allErrs = append(allErrs, apivalidation.ValidateHasLabel(obj.Spec.Template.ObjectMeta, field.NewPath("spec").Child("template").Child("metadata"), "job-name", string(obj.Name))...)
 	expectedLabels := make(map[string]string)
 	expectedLabels["controller-uid"] = string(obj.UID)
 	expectedLabels["job-name"] = string(obj.Name)
-	// Whether manually or automatically generated, the selector of the job must match the pods it will produce.
+	// Whether manually or automatically pkg, the selector of the job must match the pods it will produce.
 	if selector, err := metav1.LabelSelectorAsSelector(obj.Spec.Selector); err == nil {
 		if !selector.Matches(labels.Set(expectedLabels)) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("selector"), obj.Spec.Selector, "`selector` not auto-generated"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("selector"), obj.Spec.Selector, "`selector` not auto-pkg"))
 		}
 	}
 
@@ -94,7 +94,7 @@ func ValidateJobSpec(spec *batch.JobSpec, fldPath *field.Path) field.ErrorList {
 		allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.Selector, fldPath.Child("selector"))...)
 	}
 
-	// Whether manually or automatically generated, the selector of the job must match the pods it will produce.
+	// Whether manually or automatically pkg, the selector of the job must match the pods it will produce.
 	if selector, err := metav1.LabelSelectorAsSelector(spec.Selector); err == nil {
 		labels := labels.Set(spec.Template.Labels)
 		if !selector.Matches(labels) {
@@ -259,9 +259,9 @@ func ValidateJobTemplate(job *batch.JobTemplate) field.ErrorList {
 func ValidateJobTemplateSpec(spec *batch.JobTemplateSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := validateJobSpec(&spec.Spec, fldPath.Child("spec"))
 
-	// jobtemplate will always have the selector automatically generated
+	// jobtemplate will always have the selector automatically pkg
 	if spec.Spec.Selector != nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("spec", "selector"), spec.Spec.Selector, "`selector` will be auto-generated"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("spec", "selector"), spec.Spec.Selector, "`selector` will be auto-pkg"))
 	}
 	if spec.Spec.ManualSelector != nil && *spec.Spec.ManualSelector {
 		allErrs = append(allErrs, field.NotSupported(fldPath.Child("spec", "manualSelector"), spec.Spec.ManualSelector, []string{"nil", "false"}))

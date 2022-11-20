@@ -117,7 +117,7 @@ func IsUncertainProgressError(err error) bool {
 
 const (
 	// VolumeResizerKey is key that will be used to store resizer used
-	// for resizing PVC. The generated key/value pair will be added
+	// for resizing PVC. The pkg key/value pair will be added
 	// as a annotation to the PVC.
 	VolumeResizerKey = "volume.kubernetes.io/storage-resizer"
 )

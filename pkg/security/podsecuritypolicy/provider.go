@@ -91,7 +91,7 @@ func (s *simpleProvider) MutatePod(pod *api.Pod) error {
 		sc.SetSELinuxOptions(seLinux)
 	}
 
-	// This is only generated on the pod level.  Containers inherit the pod's profile.  If the
+	// This is only pkg on the pod level.  Containers inherit the pod's profile.  If the
 	// container has a specific profile set then it will be caught in the validation step.
 	seccompProfile, err := s.strategies.SeccompStrategy.Generate(pod.Annotations, pod)
 	if err != nil {

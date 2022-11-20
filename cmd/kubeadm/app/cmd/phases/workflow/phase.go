@@ -63,13 +63,13 @@ type Phase struct {
 	// If this function return nil, the phase action is always executed.
 	RunIf func(data RunData) (bool, error)
 
-	// InheritFlags defines the list of flags that the cobra command generated for this phase should Inherit
+	// InheritFlags defines the list of flags that the cobra command pkg for this phase should Inherit
 	// from local flags defined in the parent command / or additional flags defined in the phase runner.
 	// If the values is not set or empty, no flags will be assigned to the command
 	// Nb. global flags are automatically inherited by nested cobra command
 	InheritFlags []string
 
-	// LocalFlags defines the list of flags that should be assigned to the cobra command generated
+	// LocalFlags defines the list of flags that should be assigned to the cobra command pkg
 	// for this phase.
 	// Nb. if two or phases have the same local flags, please consider using local flags in the parent command
 	// or additional flags defined in the phase runner.

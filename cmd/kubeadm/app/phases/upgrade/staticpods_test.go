@@ -279,7 +279,7 @@ func (c fakePodManifestEtcdClient) WaitForClusterAvailable(retries int, retryInt
 }
 
 func (c fakePodManifestEtcdClient) CheckClusterHealth() error {
-	// Make sure the certificates generated from the upgrade are readable from disk
+	// Make sure the certificates pkg from the upgrade are readable from disk
 	tlsInfo := transport.TLSInfo{
 		CertFile:      filepath.Join(c.CertificatesDir, constants.EtcdCACertName),
 		KeyFile:       filepath.Join(c.CertificatesDir, constants.EtcdHealthcheckClientCertName),

@@ -50,7 +50,7 @@ aH+sfuxT8xeTPb3kjzF9eJTlnEquUDLM
 // expectedHash can be verified using the openssl CLI.
 const expectedHash = `sha256:345959acb2c3b2feb87d281961c893f62a314207ef02599f1cc4a5fb255480b3`
 
-// testCert2PEM is a second test cert generated the same way as testCertPEM
+// testCert2PEM is a second test cert pkg the same way as testCertPEM
 const testCert2PEM = `
 -----BEGIN CERTIFICATE-----
 MIID9jCCAt6gAwIBAgIJAN5MXZDic7qYMA0GCSqGSIb3DQEBBQUAMFkxCzAJBgNV

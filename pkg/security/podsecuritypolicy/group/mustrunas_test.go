@@ -87,12 +87,12 @@ func TestGenerate(t *testing.T) {
 			t.Errorf("unexpected error for %s: %v", k, err)
 		}
 		if len(actual) != len(v.expected) {
-			t.Errorf("unexpected generated values.  Expected %v, got %v", v.expected, actual)
+			t.Errorf("unexpected pkg values.  Expected %v, got %v", v.expected, actual)
 			continue
 		}
 		if len(actual) > 0 && len(v.expected) > 0 {
 			if actual[0] != v.expected[0] {
-				t.Errorf("unexpected generated values.  Expected %v, got %v", v.expected, actual)
+				t.Errorf("unexpected pkg values.  Expected %v, got %v", v.expected, actual)
 			}
 		}
 
@@ -101,10 +101,10 @@ func TestGenerate(t *testing.T) {
 			t.Errorf("unexpected error for %s: %v", k, err)
 		}
 		if single == nil {
-			t.Errorf("unexpected nil generated value for %s: %v", k, single)
+			t.Errorf("unexpected nil pkg value for %s: %v", k, single)
 		}
 		if *single != v.expected[0] {
-			t.Errorf("unexpected generated single value.  Expected %v, got %v", v.expected, actual)
+			t.Errorf("unexpected pkg single value.  Expected %v, got %v", v.expected, actual)
 		}
 	}
 }

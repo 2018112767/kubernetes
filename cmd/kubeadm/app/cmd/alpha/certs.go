@@ -63,7 +63,7 @@ var (
 `)
 
 	certificateKeyLongDesc = dedent.Dedent(`
-	This command will print out a secure randomly-generated certificate key that can be used with
+	This command will print out a secure randomly-pkg certificate key that can be used with
 	the "init" command.
 
 	You can also use "kubeadm init --upload-certs" without specifying a certificate key and it will

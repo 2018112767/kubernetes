@@ -1451,7 +1451,7 @@ func verifyContainerStatuses(t *testing.T, statuses []v1.ContainerStatus, state,
 
 // Test generateAPIPodStatus with different reason cache and old api pod status.
 func TestGenerateAPIPodStatusWithReasonCache(t *testing.T) {
-	// The following waiting reason and message  are generated in convertStatusToAPIStatus()
+	// The following waiting reason and message  are pkg in convertStatusToAPIStatus()
 	startWaitingReason := "ContainerCreating"
 	initWaitingReason := "PodInitializing"
 	testTimestamp := time.Unix(123456789, 987654321)

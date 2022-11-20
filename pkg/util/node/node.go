@@ -279,7 +279,7 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 	// if it changed.
 	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNode.Status.Addresses)
 
-	// Reset spec to make sure only patch for Status or ObjectMeta is generated.
+	// Reset spec to make sure only patch for Status or ObjectMeta is pkg.
 	// Note that we don't reset ObjectMeta here, because:
 	// 1. This aligns with Nodes().UpdateStatus().
 	// 2. Some component does use this to update node annotations.

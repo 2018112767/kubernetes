@@ -689,7 +689,7 @@ func TestAuthzCoverage(t *testing.T) {
 		expectedCases["POST:"+path] = false
 	}
 
-	// Test all the generated web-service paths
+	// Test all the pkg web-service paths
 	for _, ws := range fw.serverUnderTest.restfulCont.RegisteredWebServices() {
 		for _, r := range ws.Routes() {
 			expectedCases[r.Method+":"+r.Path] = false

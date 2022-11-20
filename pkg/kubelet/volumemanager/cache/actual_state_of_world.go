@@ -399,8 +399,8 @@ func (asw *actualStateOfWorld) GetVolumeMountState(volumeName v1.UniqueVolumeNam
 
 // addVolume adds the given volume to the cache indicating the specified
 // volume is attached to this node. If no volume name is supplied, a unique
-// volume name is generated from the volumeSpec and returned on success. If a
-// volume with the same generated name already exists, this is a noop. If no
+// volume name is pkg from the volumeSpec and returned on success. If a
+// volume with the same pkg name already exists, this is a noop. If no
 // volume plugin can support the given volumeSpec or more than one plugin can
 // support it, an error is returned.
 func (asw *actualStateOfWorld) addVolume(

@@ -20,6 +20,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
+
 	"math"
 	"net"
 	"net/http"
@@ -122,6 +126,8 @@ import (
 	"k8s.io/kubernetes/pkg/volume/util/hostutil"
 	"k8s.io/kubernetes/pkg/volume/util/subpath"
 	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
+
+	podcheckpointclientset "k8s.io/podcheckpoint/pkg/client/clientset/versioned"
 )
 
 const (
@@ -183,6 +189,7 @@ type SyncHandler interface {
 	HandlePodReconcile(pods []*v1.Pod)
 	HandlePodSyncs(pods []*v1.Pod)
 	HandlePodCleanups() error
+	HandlePodCheckpoint(pods []*v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint)
 }
 
 // Option is a functional option type for Kubelet
@@ -270,7 +277,7 @@ type Dependencies struct {
 
 // makePodSourceConfig creates a config.PodConfig from the given
 // KubeletConfiguration or returns an error.
-func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, kubeDeps *Dependencies, nodeName types.NodeName, bootstrapCheckpointPath string, nodeHasSynced func() bool) (*config.PodConfig, error) {
+func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, kubeDeps *Dependencies, nodeName types.NodeName, bootstrapCheckpointPath string, nodeHasSynced func() bool, configFile string) (*config.PodConfig, error) {
 	manifestURLHeader := make(http.Header)
 	if len(kubeCfg.StaticPodURLHeader) > 0 {
 		for k, v := range kubeCfg.StaticPodURLHeader {
@@ -314,7 +321,7 @@ func makePodSourceConfig(kubeCfg *kubeletconfiginternal.KubeletConfiguration, ku
 		if updatechannel == nil {
 			updatechannel = cfg.Channel(kubetypes.ApiserverSource)
 		}
-		config.NewSourceApiserver(kubeDeps.KubeClient, nodeName, nodeHasSynced, updatechannel)
+		config.NewSourceApiserver(kubeDeps.KubeClient, nodeName, nodeHasSynced, updatechannel, configFile)
 	}
 	return cfg, nil
 }
@@ -425,7 +432,8 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	nodeLabels map[string]string,
 	seccompProfileRoot string,
 	bootstrapCheckpointPath string,
-	nodeStatusMaxImages int32) (*Kubelet, error) {
+	nodeStatusMaxImages int32,
+	configFile string) (*Kubelet, error) {
 	if rootDirectory == "" {
 		return nil, fmt.Errorf("invalid root directory %q", rootDirectory)
 	}
@@ -491,7 +499,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 
 	if kubeDeps.PodConfig == nil {
 		var err error
-		kubeDeps.PodConfig, err = makePodSourceConfig(kubeCfg, kubeDeps, nodeName, bootstrapCheckpointPath, nodeHasSynced)
+		kubeDeps.PodConfig, err = makePodSourceConfig(kubeCfg, kubeDeps, nodeName, bootstrapCheckpointPath, nodeHasSynced, configFile)
 		if err != nil {
 			return nil, err
 		}
@@ -572,11 +580,21 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		protocol = utilipt.ProtocolIpv6
 	}
 
+	cfg, err := clientcmd.BuildConfigFromFlags("", configFile)
+	if err != nil {
+		klog.Fatalf("Error building kubeconfig: %s", err.Error())
+	}
+	podcheckpointClient, err := podcheckpointclientset.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatalf("Error building podcheckpoint clientset: %s", err.Error())
+	}
+
 	klet := &Kubelet{
 		hostname:                                hostname,
 		hostnameOverridden:                      len(hostnameOverride) > 0,
 		nodeName:                                nodeName,
 		kubeClient:                              kubeDeps.KubeClient,
+		podCheckpointClient:                     podcheckpointClient,
 		heartbeatClient:                         kubeDeps.HeartbeatClient,
 		onRepeatedHeartbeatFailure:              kubeDeps.OnHeartbeatFailure,
 		rootDirectory:                           rootDirectory,
@@ -679,7 +697,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	mirrorPodClient := kubepod.NewBasicMirrorClient(klet.kubeClient, string(nodeName), nodeLister)
 	klet.podManager = kubepod.NewBasicPodManager(mirrorPodClient, secretManager, configMapManager, checkpointManager)
 
-	klet.statusManager = status.NewManager(klet.kubeClient, klet.podManager, klet)
+	klet.statusManager = status.NewManager(klet.kubeClient, klet.podCheckpointClient, klet.podManager, klet)
 
 	klet.resourceAnalyzer = serverstats.NewResourceAnalyzer(klet, kubeCfg.VolumeStatsAggPeriod.Duration)
 
@@ -730,6 +748,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		kubeDeps.dockerLegacyService,
 		klet.containerLogManager,
 		klet.runtimeClassManager,
+		klet.podCheckpointClient,
 	)
 	if err != nil {
 		return nil, err
@@ -922,12 +941,13 @@ type Kubelet struct {
 	// hostnameOverridden indicates the hostname was overridden via flag/config
 	hostnameOverridden bool
 
-	nodeName        types.NodeName
-	runtimeCache    kubecontainer.RuntimeCache
-	kubeClient      clientset.Interface
-	heartbeatClient clientset.Interface
-	iptClient       utilipt.Interface
-	rootDirectory   string
+	nodeName            types.NodeName
+	runtimeCache        kubecontainer.RuntimeCache
+	kubeClient          clientset.Interface
+	podCheckpointClient podcheckpointclientset.Interface
+	heartbeatClient     clientset.Interface
+	iptClient           utilipt.Interface
+	rootDirectory       string
 
 	lastObservedNodeAddressesMux sync.RWMutex
 	lastObservedNodeAddresses    []v1.NodeAddress
@@ -1475,19 +1495,19 @@ func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 // o - the SyncPodOptions for this invocation
 //
 // The workflow is:
-// * If the pod is being created, record pod worker start latency
-// * Call generateAPIPodStatus to prepare an v1.PodStatus for the pod
-// * If the pod is being seen as running for the first time, record pod
-//   start latency
-// * Update the status of the pod in the status manager
-// * Kill the pod if it should not be running
-// * Create a mirror pod if the pod is a static pod, and does not
-//   already have a mirror pod
-// * Create the data directories for the pod if they do not exist
-// * Wait for volumes to attach/mount
-// * Fetch the pull secrets for the pod
-// * Call the container runtime's SyncPod callback
-// * Update the traffic shaping for the pod's ingress and egress limits
+//   - If the pod is being created, record pod worker start latency
+//   - Call generateAPIPodStatus to prepare an v1.PodStatus for the pod
+//   - If the pod is being seen as running for the first time, record pod
+//     start latency
+//   - Update the status of the pod in the status manager
+//   - Kill the pod if it should not be running
+//   - Create a mirror pod if the pod is a static pod, and does not
+//     already have a mirror pod
+//   - Create the data directories for the pod if they do not exist
+//   - Wait for volumes to attach/mount
+//   - Fetch the pull secrets for the pod
+//   - Call the container runtime's SyncPod callback
+//   - Update the traffic shaping for the pod's ingress and egress limits
 //
 // If any step of this workflow errors, the error is returned, and is repeated
 // on the next syncPod call.
@@ -1501,6 +1521,47 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 	mirrorPod := o.mirrorPod
 	podStatus := o.podStatus
 	updateType := o.updateType
+
+	var ossSecret *v1.Secret
+	if podCheckpointName := pod.Annotations["podCheckpoint"]; podCheckpointName != "" {
+
+		podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(pod.Namespace).Get(context.TODO(), podCheckpointName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Podcheckpoint %q does not exist on the server", podCheckpointName)
+			// If the Pod is deleted the status will be cleared in
+			// RemoveOrphanedStatuses, so we just ignore the update here.
+			return err
+		}
+		if err != nil {
+			klog.Warningf("Failed to get podcheckpoint %s", podCheckpointName, err)
+			return err
+		}
+		ossSecretName := podcheckpoint.Spec.SecretName
+		fmt.Println("ossSecretName = ", ossSecretName)
+		fmt.Println("o.pod.Namespace = ", o.pod.Namespace)
+
+		Secret, err := kl.kubeClient.CoreV1().Secrets(o.pod.Namespace).Get(context.TODO(), ossSecretName, metav1.GetOptions{})
+		ossSecret = Secret
+
+		if ossSecret == nil {
+			fmt.Println("Can't read osssecret")
+		}
+		if err != nil {
+			fmt.Println("The Oss ak hasn't been Set Correctlly! Error: ", err)
+		}
+	}
+
+	if updateType == kubetypes.SyncPodCheckpoint {
+		o.podcheckpoint.Status.Phase = v1alpha1.PodCheckpointing
+		fmt.Println("Entering SetPodcheckpointStatus firstly, the status is ", o.podcheckpoint.Status.Phase)
+		kl.statusManager.SetPodCheckpointStatus(o.podcheckpoint, o.podcheckpoint.Status)
+		fmt.Println("Finished SetPodcheckpointStatus firstly and entering checkpoint, the status is ", o.podcheckpoint.Status.Phase)
+		kl.containerRuntime.CheckpointPod(pod, o.podcheckpoint, ossSecret)
+		fmt.Println("Finished checkpoint and entering SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
+		kl.statusManager.SetPodCheckpointStatus(o.podcheckpoint, o.podcheckpoint.Status)
+		fmt.Println("Finished SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
+		return nil
+	}
 
 	// if we want to kill a pod, do it now!
 	if updateType == kubetypes.SyncPodKill {
@@ -1709,7 +1770,7 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 	pullSecrets := kl.getPullSecretsForPod(pod)
 
 	// Call the container runtime's SyncPod callback
-	result := kl.containerRuntime.SyncPod(pod, podStatus, pullSecrets, kl.backOff)
+	result := kl.containerRuntime.SyncPod(pod, podStatus, pullSecrets, kl.backOff, ossSecret)
 	kl.reasonCache.Update(pod.UID, result)
 	if err := result.Error(); err != nil {
 		// Do not return error if the only failures were pods in backoff
@@ -1728,8 +1789,8 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 }
 
 // Get pods which should be resynchronized. Currently, the following pod should be resynchronized:
-//   * pod whose work is ready.
-//   * internal modules that request sync of a pod.
+//   - pod whose work is ready.
+//   - internal modules that request sync of a pod.
 func (kl *Kubelet) getPodsToSync() []*v1.Pod {
 	allPods := kl.podManager.GetPods()
 	podUIDs := kl.workQueue.GetWork()
@@ -1909,13 +1970,13 @@ func (kl *Kubelet) syncLoop(updates <-chan kubetypes.PodUpdate, handler SyncHand
 // With that in mind, in truly no particular order, the different channels
 // are handled as follows:
 //
-// * configCh: dispatch the pods for the config change to the appropriate
-//             handler callback for the event type
-// * plegCh: update the runtime cache; sync pod
-// * syncCh: sync all pods waiting for sync
-// * housekeepingCh: trigger cleanup of pods
-// * liveness manager: sync pods that have failed or in which one or more
-//                     containers have failed liveness checks
+//   - configCh: dispatch the pods for the config change to the appropriate
+//     handler callback for the event type
+//   - plegCh: update the runtime cache; sync pod
+//   - syncCh: sync all pods waiting for sync
+//   - housekeepingCh: trigger cleanup of pods
+//   - liveness manager: sync pods that have failed or in which one or more
+//     containers have failed liveness checks
 func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handler SyncHandler,
 	syncCh <-chan time.Time, housekeepingCh <-chan time.Time, plegCh <-chan *pleg.PodLifecycleEvent) bool {
 	select {
@@ -1956,6 +2017,10 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 		case kubetypes.SET:
 			// TODO: Do we want to support this?
 			klog.Errorf("Kubelet does not support snapshot update")
+		case kubetypes.CHECKPOINT:
+			klog.V(2).Infof("SyncLoop Checkpoint:%v", u.PodCheckpoint)
+			fmt.Println("Entering syncLoopIteration")
+			handler.HandlePodCheckpoint(u.Pods, u.PodCheckpoint)
 		}
 
 		if u.Op != kubetypes.RESTORE {
@@ -2027,7 +2092,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 
 // dispatchWork starts the asynchronous sync of the pod in a pod worker.
 // If the pod has completed termination, dispatchWork will perform no action.
-func (kl *Kubelet) dispatchWork(pod *v1.Pod, syncType kubetypes.SyncPodType, mirrorPod *v1.Pod, start time.Time) {
+func (kl *Kubelet) dispatchWork(pod *v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint, syncType kubetypes.SyncPodType, mirrorPod *v1.Pod, start time.Time) {
 	// check whether we are ready to delete the pod from the API server (all status up to date)
 	containersTerminal, podWorkerTerminal := kl.podAndContainersAreTerminal(pod)
 	if pod.DeletionTimestamp != nil && containersTerminal {
@@ -2044,9 +2109,10 @@ func (kl *Kubelet) dispatchWork(pod *v1.Pod, syncType kubetypes.SyncPodType, mir
 
 	// Run the sync in an async worker.
 	kl.podWorkers.UpdatePod(&UpdatePodOptions{
-		Pod:        pod,
-		MirrorPod:  mirrorPod,
-		UpdateType: syncType,
+		Pod:           pod,
+		MirrorPod:     mirrorPod,
+		UpdateType:    syncType,
+		PodCheckpoint: podcheckpoint,
 		OnCompleteFunc: func(err error) {
 			if err != nil {
 				metrics.PodWorkerDuration.WithLabelValues(syncType.String()).Observe(metrics.SinceInSeconds(start))
@@ -2065,7 +2131,7 @@ func (kl *Kubelet) handleMirrorPod(mirrorPod *v1.Pod, start time.Time) {
 	// corresponding static pod. Send update to the pod worker if the static
 	// pod exists.
 	if pod, ok := kl.podManager.GetPodByMirrorPod(mirrorPod); ok {
-		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start)
+		kl.dispatchWork(pod, nil, kubetypes.SyncPodUpdate, mirrorPod, start)
 	}
 }
 
@@ -2102,7 +2168,7 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 			}
 		}
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodCreate, mirrorPod, start)
+		kl.dispatchWork(pod, nil, kubetypes.SyncPodCreate, mirrorPod, start)
 		kl.probeManager.AddPod(pod)
 	}
 }
@@ -2120,8 +2186,34 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 		// TODO: Evaluate if we need to validate and reject updates.
 
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodUpdate, mirrorPod, start)
+		kl.dispatchWork(pod, nil, kubetypes.SyncPodUpdate, mirrorPod, start)
 	}
+}
+
+// HandlePodCheckpoint is the callback in the SyncHandler interface for pods
+// being checkpointed from a config source.
+func (kl *Kubelet) HandlePodCheckpoint(pods []*v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint) {
+	start := kl.clock.Now()
+	fmt.Println("Enter HandlePodCheckpoint")
+	fmt.Println("podcheckpoint.Status.Phase = ", podcheckpoint.Status.Phase)
+	if podcheckpoint.Status.Phase == v1alpha1.PodPrepareCheckpoint {
+		for _, pod := range pods {
+			// Responsible for checking limits in resolv.conf
+			if kl.dnsConfigurer != nil && kl.dnsConfigurer.ResolverConfig != "" {
+				kl.dnsConfigurer.CheckLimitsForResolvConf()
+			}
+			kl.podManager.UpdatePod(pod)
+			if kubetypes.IsMirrorPod(pod) {
+				kl.handleMirrorPod(pod, start)
+				continue
+			}
+			// TODO: Evaluate if we need to validate and reject updates.
+
+			mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
+			kl.dispatchWork(pod, podcheckpoint, kubetypes.SyncPodCheckpoint, mirrorPod, start)
+		}
+	}
+
 }
 
 // HandlePodRemoves is the callback in the SyncHandler interface for pods
@@ -2155,7 +2247,7 @@ func (kl *Kubelet) HandlePodReconcile(pods []*v1.Pod) {
 		// Reconcile Pod "Ready" condition if necessary. Trigger sync pod for reconciliation.
 		if status.NeedToReconcilePodReadiness(pod) {
 			mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-			kl.dispatchWork(pod, kubetypes.SyncPodSync, mirrorPod, start)
+			kl.dispatchWork(pod, nil, kubetypes.SyncPodSync, mirrorPod, start)
 		}
 
 		// After an evicted pod is synced, all dead containers in the pod can be removed.
@@ -2173,7 +2265,7 @@ func (kl *Kubelet) HandlePodSyncs(pods []*v1.Pod) {
 	start := kl.clock.Now()
 	for _, pod := range pods {
 		mirrorPod, _ := kl.podManager.GetMirrorPodByPod(pod)
-		kl.dispatchWork(pod, kubetypes.SyncPodSync, mirrorPod, start)
+		kl.dispatchWork(pod, nil, kubetypes.SyncPodSync, mirrorPod, start)
 	}
 }
 

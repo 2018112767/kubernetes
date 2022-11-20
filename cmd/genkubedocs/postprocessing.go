@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// MarkdownPostProcessing goes though the generated files
+// MarkdownPostProcessing goes though the pkg files
 func MarkdownPostProcessing(cmd *cobra.Command, dir string, processor func(string) string) error {
 	for _, c := range cmd.Commands() {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {

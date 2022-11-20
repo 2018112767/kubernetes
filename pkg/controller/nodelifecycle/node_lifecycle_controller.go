@@ -321,7 +321,7 @@ type Controller struct {
 
 	// Controller will not proactively sync node health, but will monitor node
 	// health signal updated from kubelet. There are 2 kinds of node healthiness
-	// signals: NodeStatus and NodeLease. NodeLease signal is generated only when
+	// signals: NodeStatus and NodeLease. NodeLease signal is pkg only when
 	// NodeLease feature is enabled. If it doesn't receive update for this amount
 	// of time, it will start posting "NodeReady==ConditionUnknown". The amount of
 	// time before which Controller start evicting pods is controlled via flag

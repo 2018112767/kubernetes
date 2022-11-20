@@ -117,7 +117,7 @@ type Mounter interface {
 	// the required components (binaries, etc.) are available on
 	// the underlying node to complete the subsequent SetUp (mount)
 	// operation. If CanMount returns error, the mount operation is
-	// aborted and an event is generated indicating that the node
+	// aborted and an event is pkg indicating that the node
 	// does not have the required binaries to complete the mount.
 	// If CanMount succeeds, the mount operation continues
 	// normally. The CanMount check can be enabled or disabled

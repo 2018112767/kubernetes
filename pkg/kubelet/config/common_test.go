@@ -245,7 +245,7 @@ func TestStaticPodNameGenerate(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		assert.Equal(t, c.expected, generatePodName(c.podName, c.nodeName), "wrong pod name generated")
+		assert.Equal(t, c.expected, generatePodName(c.podName, c.nodeName), "wrong pod name pkg")
 		pod := &core.Pod{}
 		pod.Name = c.podName
 		if c.overwrite != "" {

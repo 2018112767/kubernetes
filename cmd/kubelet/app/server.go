@@ -270,7 +270,8 @@ HTTP server: The kubelet can also listen for HTTP and respond to a simple API
 
 			// run the kubelet
 			klog.V(5).Infof("KubeletConfiguration: %#v", kubeletServer.KubeletConfiguration)
-			if err := Run(kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate, stopCh); err != nil {
+			kubeconfigFile := kubeletFlags.KubeConfig
+			if err := Run(kubeletServer, kubeletDeps, utilfeature.DefaultFeatureGate, stopCh, kubeconfigFile); err != nil {
 				klog.Fatal(err)
 			}
 		},
@@ -411,14 +412,14 @@ func UnsecuredDependencies(s *options.KubeletServer, featureGate featuregate.Fea
 // Run runs the specified KubeletServer with the given Dependencies. This should never exit.
 // The kubeDeps argument may be nil - if so, it is initialized from the settings on KubeletServer.
 // Otherwise, the caller is assumed to have set up the Dependencies object and a default one will
-// not be generated.
-func Run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate featuregate.FeatureGate, stopCh <-chan struct{}) error {
+// not be pkg.
+func Run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate featuregate.FeatureGate, stopCh <-chan struct{}, configFile string) error {
 	// To help debugging, immediately log version
 	klog.Infof("Version: %+v", version.Get())
 	if err := initForOS(s.KubeletFlags.WindowsService, s.KubeletFlags.WindowsPriorityClass); err != nil {
 		return fmt.Errorf("failed OS init: %v", err)
 	}
-	if err := run(s, kubeDeps, featureGate, stopCh); err != nil {
+	if err := run(s, kubeDeps, featureGate, stopCh, configFile); err != nil {
 		return fmt.Errorf("failed to run Kubelet: %v", err)
 	}
 	return nil
@@ -475,7 +476,7 @@ func makeEventRecorder(kubeDeps *kubelet.Dependencies, nodeName types.NodeName) 
 	}
 }
 
-func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate featuregate.FeatureGate, stopCh <-chan struct{}) (err error) {
+func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate featuregate.FeatureGate, stopCh <-chan struct{}, configFile string) (err error) {
 	// Set global feature gates based on the value on the initial KubeletServer
 	err = utilfeature.DefaultMutableFeatureGate.SetFromMap(s.KubeletConfiguration.FeatureGates)
 	if err != nil {
@@ -774,7 +775,7 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, featureGate f
 		return err
 	}
 
-	if err := RunKubelet(s, kubeDeps, s.RunOnce); err != nil {
+	if err := RunKubelet(s, kubeDeps, s.RunOnce, configFile); err != nil {
 		return err
 	}
 
@@ -966,7 +967,7 @@ func getNodeName(cloud cloudprovider.Interface, hostname string) (types.NodeName
 }
 
 // InitializeTLS checks for a configured TLSCertFile and TLSPrivateKeyFile: if unspecified a new self-signed
-// certificate and key file are generated. Returns a configured server.TLSOptions object.
+// certificate and key file are pkg. Returns a configured server.TLSOptions object.
 func InitializeTLS(kf *options.KubeletFlags, kc *kubeletconfiginternal.KubeletConfiguration) (*server.TLSOptions, error) {
 	if !kc.ServerTLSBootstrap && kc.TLSCertFile == "" && kc.TLSPrivateKeyFile == "" {
 		kc.TLSCertFile = path.Join(kf.CertDirectory, "kubelet.crt")
@@ -1047,11 +1048,13 @@ func setContentTypeForClient(cfg *restclient.Config, contentType string) {
 }
 
 // RunKubelet is responsible for setting up and running a kubelet.  It is used in three different applications:
-//   1 Integration tests
-//   2 Kubelet binary
-//   3 Standalone 'kubernetes' binary
+//
+//	1 Integration tests
+//	2 Kubelet binary
+//	3 Standalone 'kubernetes' binary
+//
 // Eventually, #2 will be replaced with instances of #3
-func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencies, runOnce bool) error {
+func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencies, runOnce bool, configFile string) error {
 	hostname, err := nodeutil.GetHostname(kubeServer.HostnameOverride)
 	if err != nil {
 		return err
@@ -1101,7 +1104,8 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 		kubeServer.NodeLabels,
 		kubeServer.SeccompProfileRoot,
 		kubeServer.BootstrapCheckpointPath,
-		kubeServer.NodeStatusMaxImages)
+		kubeServer.NodeStatusMaxImages,
+		configFile)
 	if err != nil {
 		return fmt.Errorf("failed to create kubelet: %v", err)
 	}
@@ -1171,7 +1175,8 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	nodeLabels map[string]string,
 	seccompProfileRoot string,
 	bootstrapCheckpointPath string,
-	nodeStatusMaxImages int32) (k kubelet.Bootstrap, err error) {
+	nodeStatusMaxImages int32,
+	configFile string) (k kubelet.Bootstrap, err error) {
 	// TODO: block until all sources have delivered at least one update to the channel, or break the sync loop
 	// up into "per source" synchronizations
 
@@ -1201,7 +1206,8 @@ func createAndInitKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		nodeLabels,
 		seccompProfileRoot,
 		bootstrapCheckpointPath,
-		nodeStatusMaxImages)
+		nodeStatusMaxImages,
+		configFile)
 	if err != nil {
 		return nil, err
 	}

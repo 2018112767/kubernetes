@@ -107,14 +107,14 @@ func TestSigner(t *testing.T) {
 func TestHandle(t *testing.T) {
 	cases := []struct {
 		name string
-		// parameters to be set on the generated CSR
+		// parameters to be set on the pkg CSR
 		commonName string
 		dnsNames   []string
 		org        []string
 		usages     []capi.KeyUsage
-		// whether the generated CSR should be marked as approved
+		// whether the pkg CSR should be marked as approved
 		approved bool
-		// the signerName to be set on the generated CSR
+		// the signerName to be set on the pkg CSR
 		signerName string
 		// if true, expect an error to be returned
 		err bool

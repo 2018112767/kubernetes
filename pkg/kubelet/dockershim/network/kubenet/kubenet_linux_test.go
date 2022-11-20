@@ -294,12 +294,12 @@ func TestTearDownWithoutRuntime(t *testing.T) {
 		kubenet.Event(network.NET_PLUGIN_EVENT_POD_CIDR_CHANGE, details)
 
 		if len(kubenet.podCIDRs) != len(tc.podCIDR) {
-			t.Errorf("generated podCidr: %q, expecting: %q are not of the same length", kubenet.podCIDRs, tc.podCIDR)
+			t.Errorf("pkg podCidr: %q, expecting: %q are not of the same length", kubenet.podCIDRs, tc.podCIDR)
 			continue
 		}
 		for idx := range tc.podCIDR {
 			if kubenet.podCIDRs[idx].String() != tc.expectedPodCIDR[idx] {
-				t.Errorf("generated podCidr: %q, expecting: %q", kubenet.podCIDRs[idx].String(), tc.expectedPodCIDR[idx])
+				t.Errorf("pkg podCidr: %q, expecting: %q", kubenet.podCIDRs[idx].String(), tc.expectedPodCIDR[idx])
 			}
 		}
 

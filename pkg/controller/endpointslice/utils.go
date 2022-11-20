@@ -35,7 +35,7 @@ import (
 	utilnet "k8s.io/utils/net"
 )
 
-// podToEndpoint returns an Endpoint object generated from pod, node, and service.
+// podToEndpoint returns an Endpoint object pkg from pod, node, and service.
 func podToEndpoint(pod *corev1.Pod, node *corev1.Node, service *corev1.Service) discovery.Endpoint {
 	// Build out topology information. This is currently limited to hostname,
 	// zone, and region, but this will be expanded in the future.
@@ -81,7 +81,7 @@ func podToEndpoint(pod *corev1.Pod, node *corev1.Node, service *corev1.Service) 
 	return ep
 }
 
-// getEndpointPorts returns a list of EndpointPorts generated from a Service
+// getEndpointPorts returns a list of EndpointPorts pkg from a Service
 // and Pod.
 func getEndpointPorts(service *corev1.Service, pod *corev1.Pod) []discovery.EndpointPort {
 	endpointPorts := []discovery.EndpointPort{}
@@ -114,7 +114,7 @@ func getEndpointPorts(service *corev1.Service, pod *corev1.Pod) []discovery.Endp
 	return endpointPorts
 }
 
-// getEndpointAddresses returns a list of addresses generated from a pod status.
+// getEndpointAddresses returns a list of addresses pkg from a pod status.
 func getEndpointAddresses(podStatus corev1.PodStatus, service *corev1.Service) []string {
 	addresses := []string{}
 
@@ -147,7 +147,7 @@ func endpointsEqualBeyondHash(ep1, ep2 *discovery.Endpoint) bool {
 	return true
 }
 
-// newEndpointSlice returns an EndpointSlice generated from a service and
+// newEndpointSlice returns an EndpointSlice pkg from a service and
 // endpointMeta.
 func newEndpointSlice(service *corev1.Service, endpointMeta *endpointMeta) *discovery.EndpointSlice {
 	gvk := schema.GroupVersionKind{Version: "v1", Kind: "Service"}

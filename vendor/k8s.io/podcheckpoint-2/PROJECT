@@ -1,0 +1,17 @@
+domain: tecent.com
+layout:
+- go.kubebuilder.io/v3
+multigroup: true
+projectName: podcheckpoint
+repo: k8s.io/podcheckpoint
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tecent.com
+  group: podcheckpointcontroller
+  kind: PodCheckpoint
+  path: k8s.io/podcheckpoint/apis/podcheckpointcontroller/v1alpha1
+  version: v1alpha1
+version: "3"

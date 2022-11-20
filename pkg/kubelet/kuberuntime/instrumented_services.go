@@ -30,6 +30,16 @@ type instrumentedRuntimeService struct {
 	service internalapi.RuntimeService
 }
 
+func (in instrumentedRuntimeService) StartContainerFromCheckpoint(containerID string, checkpoint string, checkpointDir string) error {
+	//TODO implement me
+	return nil
+}
+
+func (in instrumentedRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
+	//TODO implement me
+	return nil
+}
+
 // Creates an instrumented RuntimeInterface from an existing RuntimeService.
 func newInstrumentedRuntimeService(service internalapi.RuntimeService) internalapi.RuntimeService {
 	return &instrumentedRuntimeService{service: service}

@@ -96,7 +96,7 @@ func runKubeletConfigPhase() func(c workflow.RunData) error {
 			return err
 		}
 
-		// If we're dry-running, print the generated manifests
+		// If we're dry-running, print the pkg manifests
 		if dryRun {
 			if err := printFilesIfDryRunning(dryRun, kubeletDir); err != nil {
 				return errors.Wrap(err, "error printing files on dryrun")

@@ -52,7 +52,7 @@ type DesiredStateOfWorld interface {
 
 	// AddPod adds the given pod to the list of pods that reference the
 	// specified volume and is scheduled to the specified node.
-	// A unique volumeName is generated from the volumeSpec and returned on
+	// A unique volumeName is pkg from the volumeSpec and returned on
 	// success.
 	// If the pod already exists under the specified volume, this is a no-op.
 	// If volumeSpec is not an attachable volume plugin, an error is returned.

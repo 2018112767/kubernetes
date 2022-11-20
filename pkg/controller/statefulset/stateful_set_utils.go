@@ -246,7 +246,7 @@ func getPodRevision(pod *v1.Pod) string {
 	return pod.Labels[apps.StatefulSetRevisionLabel]
 }
 
-// newStatefulSetPod returns a new Pod conforming to the set's Spec with an identity generated from ordinal.
+// newStatefulSetPod returns a new Pod conforming to the set's Spec with an identity pkg from ordinal.
 func newStatefulSetPod(set *apps.StatefulSet, ordinal int) *v1.Pod {
 	pod, _ := controller.GetPodFromTemplate(&set.Spec.Template, set, metav1.NewControllerRef(set, controllerKind))
 	pod.Name = getPodName(set, ordinal)

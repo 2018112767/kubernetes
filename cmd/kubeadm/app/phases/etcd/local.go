@@ -50,7 +50,7 @@ const (
 // upgrade - when the etcd cluster is already up and running (and the --initial-cluster flag have no impact)
 func CreateLocalEtcdStaticPodManifestFile(manifestDir, kustomizeDir string, nodeName string, cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmapi.APIEndpoint) error {
 	if cfg.Etcd.External != nil {
-		return errors.New("etcd static pod manifest cannot be generated for cluster using external etcd")
+		return errors.New("etcd static pod manifest cannot be pkg for cluster using external etcd")
 	}
 	// gets etcd StaticPodSpec
 	spec := GetEtcdPodSpec(cfg, endpoint, nodeName, []etcdutil.Member{})

@@ -106,7 +106,7 @@ func TestCreateLocalEtcdStaticPodManifestFile(t *testing.T) {
 			testutil.AssertFilesCount(t, manifestPath, 1)
 			testutil.AssertFileExists(t, manifestPath, kubeadmconstants.Etcd+".yaml")
 		} else {
-			testutil.AssertError(t, err, "etcd static pod manifest cannot be generated for cluster using external etcd")
+			testutil.AssertError(t, err, "etcd static pod manifest cannot be pkg for cluster using external etcd")
 		}
 	}
 }

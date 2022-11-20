@@ -32,6 +32,16 @@ type instrumentedInterface struct {
 	client Interface
 }
 
+func (in instrumentedInterface) StartContainerFromCheckpoint(id string, checkpoint string, checkpointDir string) error {
+	//TODO implement me
+	return nil
+}
+
+func (in instrumentedInterface) CheckpointContainer(id string, checkpoint string, checkpointDir string, preDump bool) error {
+	//TODO implement me
+	return nil
+}
+
 // NewInstrumentedInterface creates an instrumented Interface from an existing Interface.
 func NewInstrumentedInterface(dockerClient Interface) Interface {
 	return instrumentedInterface{

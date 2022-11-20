@@ -386,7 +386,7 @@ func (og *operationGenerator) GenerateAttachVolumeFunc(
 		og.volumePluginMgr.FindAttachablePluginBySpec(volumeToAttach.VolumeSpec)
 	// It's ok to ignore the error, returning error is not expected from this function.
 	// If an error case occurred during the function generation, this error case(skipped one) will also trigger an error
-	// while the generated function is executed. And those errors will be handled during the execution of the generated
+	// while the pkg function is executed. And those errors will be handled during the execution of the pkg
 	// function with a back off policy.
 	if err == nil && attachableVolumePlugin != nil {
 		attachableVolumePluginName = attachableVolumePlugin.GetPluginName()

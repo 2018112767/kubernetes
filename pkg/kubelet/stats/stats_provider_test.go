@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	// Offsets from seed value in generated container stats.
+	// Offsets from seed value in pkg container stats.
 	offsetCPUUsageCores = iota
 	offsetCPUUsageCoreSeconds
 	offsetMemPageFaults

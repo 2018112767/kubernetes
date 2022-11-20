@@ -37,6 +37,16 @@ type RemoteRuntime struct {
 	ImageService *apitest.FakeImageService
 }
 
+func (f *RemoteRuntime) StartContainerFromCheckpoint(ctx context.Context, request *kubeapi.StartContainerFromCheckpointRequest) (*kubeapi.StartContainerResponse, error) {
+	//TODO implement me
+	return nil, nil
+}
+
+func (f *RemoteRuntime) CheckpointContainer(ctx context.Context, request *kubeapi.CheckpointContainerRequest) (*kubeapi.StartContainerResponse, error) {
+	//TODO implement me
+	return nil, nil
+}
+
 // NewFakeRemoteRuntime creates a new RemoteRuntime.
 func NewFakeRemoteRuntime() *RemoteRuntime {
 	fakeRuntimeService := apitest.NewFakeRuntimeService()

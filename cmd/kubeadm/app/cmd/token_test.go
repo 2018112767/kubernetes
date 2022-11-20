@@ -157,7 +157,7 @@ func TestRunCreateToken(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			bts, err := kubeadmapiv1beta2.NewBootstrapTokenString(tc.token)
-			if err != nil && len(tc.token) != 0 { // if tc.token is "" it's okay as it will be generated later at runtime
+			if err != nil && len(tc.token) != 0 { // if tc.token is "" it's okay as it will be pkg later at runtime
 				t.Fatalf("token couldn't be parsed for testing: %v", err)
 			}
 

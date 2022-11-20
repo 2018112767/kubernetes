@@ -103,7 +103,7 @@ func LoadClientConfig(kubeconfigPath, bootstrapPath, certDir string) (certConfig
 
 // LoadClientCert requests a client cert for kubelet if the kubeconfigPath file does not exist.
 // The kubeconfig at bootstrapPath is used to request a client certificate from the API server.
-// On success, a kubeconfig file referencing the generated key and obtained certificate is written to kubeconfigPath.
+// On success, a kubeconfig file referencing the pkg key and obtained certificate is written to kubeconfigPath.
 // The certificate and key file are stored in certDir.
 func LoadClientCert(kubeconfigPath, bootstrapPath, certDir string, nodeName types.NodeName) error {
 	// Short-circuit if the kubeconfig file exists and is valid.

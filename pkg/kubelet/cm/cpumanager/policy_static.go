@@ -348,7 +348,7 @@ func (p *staticPolicy) GetTopologyHints(s state.State, pod *v1.Pod, container *v
 
 	// Generate hints.
 	cpuHints := p.generateCPUTopologyHints(available, reusable, requested)
-	klog.Infof("[cpumanager] TopologyHints generated for pod '%v', container '%v': %v", pod.Name, container.Name, cpuHints)
+	klog.Infof("[cpumanager] TopologyHints pkg for pod '%v', container '%v': %v", pod.Name, container.Name, cpuHints)
 
 	return map[string][]topologymanager.TopologyHint{
 		string(v1.ResourceCPU): cpuHints,

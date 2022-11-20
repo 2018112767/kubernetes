@@ -122,7 +122,7 @@ func TestControllerSync(t *testing.T) {
 			noevents, noerrors,
 			// Custom test function that generates a delete claim event which should have been caught by
 			// "deleteClaim" to remove the claim from controller's cache, after that, a volume deleted
-			// event will be generated to trigger "deleteVolume" call for metric reporting
+			// event will be pkg to trigger "deleteVolume" call for metric reporting
 			func(ctrl *PersistentVolumeController, reactor *pvtesting.VolumeReactor, test controllerTest) error {
 				test.initialVolumes[0].Annotations[pvutil.AnnDynamicallyProvisioned] = "gcr.io/vendor-csi"
 				obj := ctrl.claims.List()[0]

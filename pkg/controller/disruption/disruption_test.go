@@ -1086,7 +1086,7 @@ func TestUpdatePDBStatusRetries(t *testing.T) {
 
 	// Evict simulates the visible effects of eviction in our fake client.
 	evict := func(podNames ...string) {
-		// These GVRs are copied from the generated fake code because they are not exported.
+		// These GVRs are copied from the pkg fake code because they are not exported.
 		var (
 			podsResource                 = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 			poddisruptionbudgetsResource = schema.GroupVersionResource{Group: "policy", Version: "v1beta1", Resource: "poddisruptionbudgets"}

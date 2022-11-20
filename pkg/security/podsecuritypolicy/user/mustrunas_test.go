@@ -71,7 +71,7 @@ func TestGenerate(t *testing.T) {
 		t.Fatalf("unexpected error generating runAsUser %v", err)
 	}
 	if *generated != opts.Ranges[0].Min {
-		t.Errorf("generated runAsUser does not equal configured runAsUser")
+		t.Errorf("pkg runAsUser does not equal configured runAsUser")
 	}
 }
 

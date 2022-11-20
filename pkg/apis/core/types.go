@@ -2729,7 +2729,7 @@ type PodSpec struct {
 	// +optional
 	PreemptionPolicy *PreemptionPolicy
 	// Specifies the DNS parameters of a pod.
-	// Parameters specified here will be merged to the generated DNS
+	// Parameters specified here will be merged to the pkg DNS
 	// configuration based on DNSPolicy.
 	// +optional
 	DNSConfig *PodDNSConfig
@@ -2908,20 +2908,20 @@ const (
 )
 
 // PodDNSConfig defines the DNS parameters of a pod in addition to
-// those generated from DNSPolicy.
+// those pkg from DNSPolicy.
 type PodDNSConfig struct {
 	// A list of DNS name server IP addresses.
-	// This will be appended to the base nameservers generated from DNSPolicy.
+	// This will be appended to the base nameservers pkg from DNSPolicy.
 	// Duplicated nameservers will be removed.
 	// +optional
 	Nameservers []string
 	// A list of DNS search domains for host-name lookup.
-	// This will be appended to the base search paths generated from DNSPolicy.
+	// This will be appended to the base search paths pkg from DNSPolicy.
 	// Duplicated search paths will be removed.
 	// +optional
 	Searches []string
 	// A list of DNS resolver options.
-	// This will be merged with the base options generated from DNSPolicy.
+	// This will be merged with the base options pkg from DNSPolicy.
 	// Duplicated entries will be removed. Resolution options given in Options
 	// will override those that appear in the base DNSPolicy.
 	// +optional
@@ -4425,12 +4425,12 @@ type SerializedReference struct {
 	Reference ObjectReference
 }
 
-// EventSource represents the source from which an event is generated
+// EventSource represents the source from which an event is pkg
 type EventSource struct {
-	// Component from which the event is generated.
+	// Component from which the event is pkg.
 	// +optional
 	Component string
-	// Node name on which the event is generated.
+	// Node name on which the event is pkg.
 	// +optional
 	Host string
 }
@@ -4457,7 +4457,7 @@ type Event struct {
 	InvolvedObject ObjectReference
 
 	// Optional; this should be a short, machine understandable string that gives the reason
-	// for this event being generated. For example, if the event is reporting that a container
+	// for this event being pkg. For example, if the event is reporting that a container
 	// can't start, the Reason might be "ImageNotFound".
 	// TODO: provide exact specification for format.
 	// +optional

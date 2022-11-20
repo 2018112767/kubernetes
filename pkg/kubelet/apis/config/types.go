@@ -100,7 +100,7 @@ type KubeletConfiguration struct {
 	// tlsCertFile is the file containing x509 Certificate for HTTPS.  (CA cert,
 	// if any, concatenated after server cert). If tlsCertFile and
 	// tlsPrivateKeyFile are not provided, a self-signed certificate
-	// and key are generated for the public address and saved to the directory
+	// and key are pkg for the public address and saved to the directory
 	// passed to the Kubelet's --cert-dir flag.
 	TLSCertFile string
 	// tlsPrivateKeyFile is the file containing x509 private key matching tlsCertFile

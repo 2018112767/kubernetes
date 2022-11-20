@@ -191,15 +191,15 @@ func TestJobStrategyWithGeneration(t *testing.T) {
 
 	// Validate the stuff that validation should have validated.
 	if job.Spec.Selector == nil {
-		t.Errorf("Selector not generated")
+		t.Errorf("Selector not pkg")
 	}
 	expectedLabels := make(map[string]string)
 	expectedLabels["controller-uid"] = string(theUID)
 	if !reflect.DeepEqual(job.Spec.Selector.MatchLabels, expectedLabels) {
-		t.Errorf("Expected label selector not generated")
+		t.Errorf("Expected label selector not pkg")
 	}
 	if job.Spec.Template.ObjectMeta.Labels == nil {
-		t.Errorf("Expected template labels not generated")
+		t.Errorf("Expected template labels not pkg")
 	}
 	if v, ok := job.Spec.Template.ObjectMeta.Labels["job-name"]; !ok || v != "myjob2" {
 		t.Errorf("Expected template labels not present")

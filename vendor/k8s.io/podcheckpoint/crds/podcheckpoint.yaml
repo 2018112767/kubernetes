@@ -1,0 +1,9 @@
+apiVersion: podcheckpointcontroller.tecent.com/v1alpha1
+kind: PodCheckpoint
+metadata:
+  name: podcheckpoint-sample
+spec:
+  # Add fields here
+  podName: crtest
+  storage: oss://oss-cn-hangzhou.aliyuncs.com/bin-migrate
+  secretName: migrate-secret

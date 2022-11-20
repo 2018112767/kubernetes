@@ -112,8 +112,8 @@ type nonCSILimits struct {
 	pvcLister      corelisters.PersistentVolumeClaimLister
 	scLister       storagelisters.StorageClassLister
 
-	// The string below is generated randomly during the struct's initialization.
-	// It is used to prefix volumeID generated inside the predicate() method to
+	// The string below is pkg randomly during the struct's initialization.
+	// It is used to prefix volumeID pkg inside the predicate() method to
 	// avoid conflicts with any real volume.
 	randomVolumeIDPrefix string
 }

@@ -78,7 +78,7 @@ func runWaitControlPlanePhase(c workflow.RunData) error {
 		return errors.New("wait-control-plane phase invoked with an invalid data struct")
 	}
 
-	// If we're dry-running, print the generated manifests
+	// If we're dry-running, print the pkg manifests
 	if err := printFilesIfDryRunning(data); err != nil {
 		return errors.Wrap(err, "error printing files on dryrun")
 	}

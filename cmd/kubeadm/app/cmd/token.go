@@ -111,7 +111,7 @@ func NewCmdToken(out io.Writer, errW io.Writer) *cobra.Command {
 			You can specify the usages for this token, the "time to live" and an optional human friendly description.
 
 			The [token] is the actual token to write.
-			This should be a securely generated random token of the form "[a-z0-9]{6}.[a-z0-9]{16}".
+			This should be a securely pkg random token of the form "[a-z0-9]{6}.[a-z0-9]{16}".
 			If no [token] is given, kubeadm will generate a random token instead.
 		`),
 		RunE: func(tokenCmd *cobra.Command, args []string) error {
@@ -213,7 +213,7 @@ func NewCmdTokenGenerate(out io.Writer) *cobra.Command {
 		Use:   "generate",
 		Short: "Generate and print a bootstrap token, but do not create it on the server",
 		Long: dedent.Dedent(`
-			This command will print out a randomly-generated bootstrap token that can be used with
+			This command will print out a randomly-pkg bootstrap token that can be used with
 			the "init" and "join" commands.
 
 			You don't have to use this command in order to generate a token. You can do so

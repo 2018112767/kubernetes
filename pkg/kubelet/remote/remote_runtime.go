@@ -226,6 +226,45 @@ func (r *RemoteRuntimeService) StartContainer(containerID string) error {
 	return nil
 }
 
+// StartContainerFromCheckpoint starts the containe from checkpoint
+func (r *RemoteRuntimeService) StartContainerFromCheckpoint(containerID string, checkpoint string, checkpointDir string) error {
+	ctx, cancel := getContextWithTimeout(r.timeout)
+	defer cancel()
+
+	_, err := r.runtimeClient.StartContainerFromCheckpoint(ctx, &runtimeapi.StartContainerFromCheckpointRequest{
+		ContainerId:   containerID,
+		Checkpoint:    checkpoint,
+		CheckpointDir: checkpointDir,
+	})
+	if err != nil {
+		klog.Errorf("StartContainerFromCheckpoint %q from runtime service failed: %v", containerID, err)
+		return err
+	}
+
+	return nil
+}
+
+// StartContainerFromCheckpoint starts the containe from checkpoint
+func (r *RemoteRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
+	fmt.Println("Invoke RemoteRuntimeService.CheckpointContainer")
+	ctx, cancel := getContextWithTimeout(r.timeout)
+	defer cancel()
+
+	fmt.Println("Invoke docker-shim.CheckpointContainer")
+	_, err := r.runtimeClient.CheckpointContainer(ctx, &runtimeapi.CheckpointContainerRequest{
+		ContainerId:   containerID,
+		Checkpoint:    checkpoint,
+		CheckpointDir: checkpointDir,
+		PreDump:       preDump,
+	})
+	if err != nil {
+		klog.Errorf("CheckpointContainer %q from runtime service failed: %v", containerID, err)
+		return err
+	}
+
+	return nil
+}
+
 // StopContainer stops a running container with a grace period (i.e., timeout).
 func (r *RemoteRuntimeService) StopContainer(containerID string, timeout int64) error {
 	// Use timeout + default timeout (2 minutes) as timeout to leave extra time

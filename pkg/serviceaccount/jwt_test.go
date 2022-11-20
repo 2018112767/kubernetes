@@ -167,7 +167,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 		t.Fatalf("error generating token: %v", err)
 	}
 	if len(rsaToken) == 0 {
-		t.Fatalf("no token generated")
+		t.Fatalf("no token pkg")
 	}
 	rsaSecret.Data = map[string][]byte{
 		"token": []byte(rsaToken),
@@ -185,7 +185,7 @@ func TestTokenGenerateAndValidate(t *testing.T) {
 		t.Fatalf("error generating token: %v", err)
 	}
 	if len(ecdsaToken) == 0 {
-		t.Fatalf("no token generated")
+		t.Fatalf("no token pkg")
 	}
 	ecdsaSecret.Data = map[string][]byte{
 		"token": []byte(ecdsaToken),

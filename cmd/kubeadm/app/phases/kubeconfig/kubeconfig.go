@@ -255,7 +255,7 @@ func validateKubeConfig(outDir, filename string, config *clientcmdapi.Config) er
 
 	// Make sure the compared CAs are whitespace-trimmed. The function clientcmd.LoadFromFile() just decodes
 	// the base64 CA and places it raw in the v1.Config object. In case the user has extra whitespace
-	// in the CA they used to create a kubeconfig this comparison to a generated v1.Config will otherwise fail.
+	// in the CA they used to create a kubeconfig this comparison to a pkg v1.Config will otherwise fail.
 	caCurrent := bytes.TrimSpace(currentConfig.Clusters[currentCluster].CertificateAuthorityData)
 	caExpected := bytes.TrimSpace(config.Clusters[expectedCluster].CertificateAuthorityData)
 

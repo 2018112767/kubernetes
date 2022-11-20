@@ -63,6 +63,14 @@ service RuntimeService {
     rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}
     // StartContainer starts the container.
     rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}
+
+    // StartContainerFromCheckpoint starts the container.
+    rpc StartContainerFromCheckpoint(StartContainerFromCheckpointRequest) returns (StartContainerResponse) {}
+
+    rpc CheckpointContainer(CheckpointContainerRequest ) returns (StartContainerResponse) {}
+
+
+
     // StopContainer stops a running container with a grace period (i.e., timeout).
     // This call is idempotent, and must not return an error if the container has
     // already been stopped.
@@ -806,6 +814,26 @@ message CreateContainerResponse {
 message StartContainerRequest {
     // ID of the container to start.
     string container_id = 1;
+}
+
+message StartContainerFromCheckpointRequest {
+    // ID of the container to start.
+    string container_id = 1;
+    // CheckpointID of the container to start
+    string checkpoint = 2;
+    // CheckpointDir of the container to start
+    string checkpoint_dir = 3;
+}
+
+message CheckpointContainerRequest {
+    // ID of the container to start.
+    string container_id = 1;
+    // CheckpointID of the container to start
+    string checkpoint = 2;
+    // CheckpointDir of the container to start
+    string checkpoint_dir = 3;
+    // predeump
+    bool pre_dump = 4;
 }
 
 message StartContainerResponse {}

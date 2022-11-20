@@ -63,7 +63,7 @@ type Runner struct {
 	// command that will trigger the runner (only if the runner is BindToCommand).
 	runCmd *cobra.Command
 
-	// cmdAdditionalFlags holds additional, shared flags that could be added to the subcommands generated
+	// cmdAdditionalFlags holds additional, shared flags that could be added to the subcommands pkg
 	// for phases. Flags could be inherited from the parent command too or added directly to each phase
 	cmdAdditionalFlags *pflag.FlagSet
 
@@ -280,7 +280,7 @@ func (e *Runner) Help(cmdUse string) string {
 }
 
 // SetAdditionalFlags allows to define flags to be added
-// to the subcommands generated for each phase (but not existing in the parent command).
+// to the subcommands pkg for each phase (but not existing in the parent command).
 // Please note that this command needs to be done before BindToCommand.
 // Nb. if a flag is used only by one phase, please consider using phase LocalFlags.
 func (e *Runner) SetAdditionalFlags(fn func(*pflag.FlagSet)) {

@@ -39,21 +39,21 @@ const (
 	LevelRequestResponse Level = "RequestResponse"
 )
 
-// Stage defines the stages in request handling during which audit events may be generated.
+// Stage defines the stages in request handling during which audit events may be pkg.
 type Stage string
 
 // Valid audit stages.
 const (
-	// The stage for events generated after the audit handler receives the request, but before it
+	// The stage for events pkg after the audit handler receives the request, but before it
 	// is delegated down the handler chain.
 	StageRequestReceived = "RequestReceived"
-	// The stage for events generated after the response headers are sent, but before the response body
-	// is sent. This stage is only generated for long-running requests (e.g. watch).
+	// The stage for events pkg after the response headers are sent, but before the response body
+	// is sent. This stage is only pkg for long-running requests (e.g. watch).
 	StageResponseStarted = "ResponseStarted"
-	// The stage for events generated after the response body has been completed, and no more bytes
+	// The stage for events pkg after the response body has been completed, and no more bytes
 	// will be sent.
 	StageResponseComplete = "ResponseComplete"
-	// The stage for events generated when a panic occurred.
+	// The stage for events pkg when a panic occurred.
 	StagePanic = "Panic"
 )
 

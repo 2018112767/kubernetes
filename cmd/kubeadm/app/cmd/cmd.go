@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	// Register the kubeadm configuration types because CLI flag generation
-	// depends on the generated defaults.
+	// depends on the pkg defaults.
 )
 
 // NewKubeadmCommand returns cobra.Command to run kubeadm command

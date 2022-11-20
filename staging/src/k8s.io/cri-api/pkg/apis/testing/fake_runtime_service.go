@@ -62,6 +62,16 @@ type FakeRuntimeService struct {
 	FakeContainerStats map[string]*runtimeapi.ContainerStats
 }
 
+func (r *FakeRuntimeService) StartContainerFromCheckpoint(containerID string, checkpoint string, checkpointDir string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *FakeRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (r *FakeRuntimeService) GetContainerID(sandboxID, name string, attempt uint32) (string, error) {
 	r.Lock()
 	defer r.Unlock()

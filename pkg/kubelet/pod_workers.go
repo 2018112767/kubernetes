@@ -18,6 +18,7 @@ package kubelet
 
 import (
 	"fmt"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
 	"strings"
 	"sync"
 	"time"
@@ -56,6 +57,10 @@ type KillPodOptions struct {
 type UpdatePodOptions struct {
 	// pod to update
 	Pod *v1.Pod
+
+	// podcheckpoint
+	PodCheckpoint *v1alpha1.PodCheckpoint
+
 	// the mirror pod for the pod to update, if it is a static pod
 	MirrorPod *v1.Pod
 	// the type of update (create, update, sync, kill)
@@ -83,6 +88,8 @@ type syncPodOptions struct {
 	mirrorPod *v1.Pod
 	// pod to sync
 	pod *v1.Pod
+	// podcheckpoint to checkpoint
+	podcheckpoint *v1alpha1.PodCheckpoint
 	// the type of update (create, update, sync)
 	updateType kubetypes.SyncPodType
 	// the current status
@@ -175,6 +182,7 @@ func (p *podWorkers) managePodLoop(podUpdates <-chan UpdatePodOptions) {
 			err = p.syncPodFn(syncPodOptions{
 				mirrorPod:      update.MirrorPod,
 				pod:            update.Pod,
+				podcheckpoint:  update.PodCheckpoint,
 				podStatus:      status,
 				killPodOptions: update.KillPodOptions,
 				updateType:     update.UpdateType,
@@ -198,6 +206,7 @@ func (p *podWorkers) managePodLoop(podUpdates <-chan UpdatePodOptions) {
 // If the options provide an OnCompleteFunc, the function is invoked if the update is accepted.
 // Update requests are ignored if a kill pod request is pending.
 func (p *podWorkers) UpdatePod(options *UpdatePodOptions) {
+	//logrus.Info("Start UpdatePod:%v", options.PodCheckpoint)
 	pod := options.Pod
 	uid := pod.UID
 	var podUpdates chan UpdatePodOptions

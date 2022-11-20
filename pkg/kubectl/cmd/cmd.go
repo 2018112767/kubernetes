@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/migrate"
 	"os"
 	"os/exec"
 	"runtime"
@@ -485,6 +486,7 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				create.NewCmdCreate(f, ioStreams),
 				expose.NewCmdExposeService(f, ioStreams),
+				migrate.NewCmdMigrate(f, ioStreams),
 				run.NewCmdRun(f, ioStreams),
 				set.NewCmdSet(f, ioStreams),
 			},

@@ -45,7 +45,7 @@ import (
 type DesiredStateOfWorld interface {
 	// AddPodToVolume adds the given pod to the given volume in the cache
 	// indicating the specified pod should mount the specified volume.
-	// A unique volumeName is generated from the volumeSpec and returned on
+	// A unique volumeName is pkg from the volumeSpec and returned on
 	// success.
 	// If no volume plugin can support the given volumeSpec or more than one
 	// plugin can support it, an error is returned.

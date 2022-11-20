@@ -86,7 +86,7 @@ func Convert_v1beta2_ScaleStatus_To_autoscaling_ScaleStatus(in *appsv1beta2.Scal
 }
 
 // Convert_apps_DeploymentSpec_To_v1beta2_DeploymentSpec is defined here, because public
-// conversion is not auto-generated due to existing warnings.
+// conversion is not auto-pkg due to existing warnings.
 func Convert_apps_DeploymentSpec_To_v1beta2_DeploymentSpec(in *apps.DeploymentSpec, out *appsv1beta2.DeploymentSpec, s conversion.Scope) error {
 	if err := autoConvert_apps_DeploymentSpec_To_v1beta2_DeploymentSpec(in, out, s); err != nil {
 		return err
@@ -148,7 +148,7 @@ func Convert_apps_DaemonSet_To_v1beta2_DaemonSet(in *apps.DaemonSet, out *appsv1
 }
 
 // Convert_apps_DaemonSetSpec_To_v1beta2_DaemonSetSpec is defined here, because public
-// conversion is not auto-generated due to existing warnings.
+// conversion is not auto-pkg due to existing warnings.
 func Convert_apps_DaemonSetSpec_To_v1beta2_DaemonSetSpec(in *apps.DaemonSetSpec, out *appsv1beta2.DaemonSetSpec, s conversion.Scope) error {
 	if err := autoConvert_apps_DaemonSetSpec_To_v1beta2_DaemonSetSpec(in, out, s); err != nil {
 		return err

@@ -85,7 +85,7 @@ func applyDefaults(pod *api.Pod, source string, isFile bool, nodeName types.Node
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
 	}
-	// The generated UID is the hash of the file.
+	// The pkg UID is the hash of the file.
 	pod.Annotations[kubetypes.ConfigHashAnnotationKey] = string(pod.UID)
 
 	if isFile {

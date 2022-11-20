@@ -19,6 +19,8 @@ package status
 import (
 	"context"
 	"fmt"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
+	podcheckpointclientset "k8s.io/podcheckpoint/pkg/client/clientset/versioned"
 	"sort"
 	"sync"
 	"time"
@@ -28,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apimachineryv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -52,20 +55,38 @@ type versionedPodStatus struct {
 	podNamespace string
 }
 
+type versionedPodCheckpointStatus struct {
+	status v1alpha1.PodCheckpointStatus
+	// Monotonically increasing version number (per pod).
+	version uint64
+	// Pod name & namespace, for sending updates to API server.
+	podCheckpointName      string
+	podCheckpointNamespace string
+}
+
 type podStatusSyncRequest struct {
 	podUID types.UID
 	status versionedPodStatus
 }
 
+type podCheckpointStatusSyncRequest struct {
+	podCheckpointUID types.UID
+	status           versionedPodCheckpointStatus
+}
+
 // Updates pod statuses in apiserver. Writes only when new status has changed.
 // All methods are thread-safe.
 type manager struct {
-	kubeClient clientset.Interface
-	podManager kubepod.Manager
+	kubeClient          clientset.Interface
+	podcheckpointClient podcheckpointclientset.Interface
+	podManager          kubepod.Manager
 	// Map from pod UID to sync status of the corresponding pod.
-	podStatuses      map[types.UID]versionedPodStatus
-	podStatusesLock  sync.RWMutex
-	podStatusChannel chan podStatusSyncRequest
+	podStatuses                map[types.UID]versionedPodStatus
+	podCheckpointStatuses      map[types.UID]versionedPodCheckpointStatus
+	podStatusesLock            sync.RWMutex
+	podCheckpointStatusesLock  sync.RWMutex
+	podStatusChannel           chan podStatusSyncRequest
+	podCheckpointStatusChannel chan podCheckpointStatusSyncRequest
 	// Map from (mirror) pod UID to latest status version successfully sent to the API server.
 	// apiStatusVersions must only be accessed from the sync thread.
 	apiStatusVersions map[kubetypes.MirrorPodUID]uint64
@@ -97,6 +118,9 @@ type Manager interface {
 	// SetPodStatus caches updates the cached status for the given pod, and triggers a status update.
 	SetPodStatus(pod *v1.Pod, status v1.PodStatus)
 
+	//SetPodCheckpointStatus caches updates the cached status for the given podcheckpoint, and triggers a status update.
+	SetPodCheckpointStatus(podcheckpoint *v1alpha1.PodCheckpoint, status v1alpha1.PodCheckpointStatus)
+
 	// SetContainerReadiness updates the cached container status with the given readiness, and
 	// triggers a status update.
 	SetContainerReadiness(podUID types.UID, containerID kubecontainer.ContainerID, ready bool)
@@ -117,14 +141,17 @@ type Manager interface {
 const syncPeriod = 10 * time.Second
 
 // NewManager returns a functional Manager.
-func NewManager(kubeClient clientset.Interface, podManager kubepod.Manager, podDeletionSafety PodDeletionSafetyProvider) Manager {
+func NewManager(kubeClient clientset.Interface, podcheckpointClient podcheckpointclientset.Interface, podManager kubepod.Manager, podDeletionSafety PodDeletionSafetyProvider) Manager {
 	return &manager{
-		kubeClient:        kubeClient,
-		podManager:        podManager,
-		podStatuses:       make(map[types.UID]versionedPodStatus),
-		podStatusChannel:  make(chan podStatusSyncRequest, 1000), // Buffer up to 1000 statuses
-		apiStatusVersions: make(map[kubetypes.MirrorPodUID]uint64),
-		podDeletionSafety: podDeletionSafety,
+		kubeClient:                 kubeClient,
+		podcheckpointClient:        podcheckpointClient,
+		podManager:                 podManager,
+		podStatuses:                make(map[types.UID]versionedPodStatus),
+		podCheckpointStatuses:      make(map[types.UID]versionedPodCheckpointStatus),
+		podStatusChannel:           make(chan podStatusSyncRequest, 1000), // Buffer up to 1000 statuses
+		podCheckpointStatusChannel: make(chan podCheckpointStatusSyncRequest, 1000),
+		apiStatusVersions:          make(map[kubetypes.MirrorPodUID]uint64),
+		podDeletionSafety:          podDeletionSafety,
 	}
 }
 
@@ -166,6 +193,12 @@ func (m *manager) Start() {
 				klog.V(5).Infof("Status Manager: syncing pod: %q, with status: (%d, %v) from podStatusChannel",
 					syncRequest.podUID, syncRequest.status.version, syncRequest.status.status)
 				m.syncPod(syncRequest.podUID, syncRequest.status)
+			case syncCheckpointRequest := <-m.podCheckpointStatusChannel:
+				klog.V(5).Infof("Status Manager: syncing podcheckpoint: %q, with status: (%d, %v) from podCheckpointStatusChannel",
+					syncCheckpointRequest.podCheckpointUID, syncCheckpointRequest.status.version, syncCheckpointRequest.status.status)
+				klog.Warningf("Status Manager: syncing podcheckpoint: %q, with status: (%d, %v) from podCheckpointStatusChannel",
+					syncCheckpointRequest.podCheckpointUID, syncCheckpointRequest.status.version, syncCheckpointRequest.status.status)
+				m.syncPodCheckpoint(syncCheckpointRequest.podCheckpointUID, syncCheckpointRequest.status)
 			case <-syncTicker:
 				klog.V(5).Infof("Status Manager: syncing batch")
 				// remove any entries in the status channel since the batch will handle them
@@ -202,6 +235,15 @@ func (m *manager) SetPodStatus(pod *v1.Pod, status v1.PodStatus) {
 	// because if the pod is in the non-running state, the pod worker still
 	// needs to be able to trigger an update and/or deletion.
 	m.updateStatusInternal(pod, status, pod.DeletionTimestamp != nil)
+}
+
+func (m *manager) SetPodCheckpointStatus(podcheckpoint *v1alpha1.PodCheckpoint, status v1alpha1.PodCheckpointStatus) {
+	m.podCheckpointStatusesLock.Lock()
+	defer m.podCheckpointStatusesLock.Unlock()
+	// Make sure we're caching a deep copy.
+	status = *status.DeepCopy()
+	klog.Warningf("setpodcheckpointstatus, the status is %q\n", status)
+	m.updatePodCheckpointStatusInternal(podcheckpoint, status, false)
 }
 
 func (m *manager) SetContainerReadiness(podUID types.UID, containerID kubecontainer.ContainerID, ready bool) {
@@ -458,6 +500,34 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 	}
 }
 
+// necessary. Returns whether an update was triggered.
+// This method IS NOT THREAD SAFE and must be called from a locked function.
+func (m *manager) updatePodCheckpointStatusInternal(podcheckpoint *v1alpha1.PodCheckpoint, status v1alpha1.PodCheckpointStatus, forceUpdate bool) bool {
+
+	cachedStatus, _ := m.podCheckpointStatuses[podcheckpoint.UID]
+
+	newStatus := versionedPodCheckpointStatus{
+		status:                 status,
+		version:                cachedStatus.version + 1,
+		podCheckpointName:      podcheckpoint.Name,
+		podCheckpointNamespace: podcheckpoint.Namespace,
+	}
+	m.podCheckpointStatuses[podcheckpoint.UID] = newStatus
+
+	select {
+	case m.podCheckpointStatusChannel <- podCheckpointStatusSyncRequest{podcheckpoint.UID, newStatus}:
+		klog.V(5).Infof("Status Manager: adding podcheckpoint: %q, with status: (%q, %v) to podCheckpointStatusChannel",
+			podcheckpoint.UID, newStatus.version, newStatus.status)
+		return true
+	default:
+		// Let the periodic syncBatch handle the update if the channel is full.
+		// We can't block, since we hold the mutex lock.
+		klog.V(4).Infof("Skipping the status update for pod %q for now because the channel is full; status: %+v",
+			podcheckpoint.UID, status)
+		return false
+	}
+}
+
 // updateLastTransitionTime updates the LastTransitionTime of a pod condition.
 func updateLastTransitionTime(status, oldStatus *v1.PodStatus, conditionType v1.PodConditionType) {
 	_, condition := podutil.GetPodCondition(status, conditionType)
@@ -597,6 +667,50 @@ func (m *manager) syncPod(uid types.UID, status versionedPodStatus) {
 		klog.V(3).Infof("Pod %q fully terminated and removed from etcd", format.Pod(pod))
 		m.deletePodStatus(uid)
 	}
+}
+
+// syncPod syncs the given status with the API server. The caller must not hold the lock.
+func (m *manager) syncPodCheckpoint(uid types.UID, status versionedPodCheckpointStatus) {
+	klog.Warningf("the status is %q\n", status)
+	// TODO: make me easier to express from client code
+	podcheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(status.podCheckpointNamespace).Get(context.TODO(), status.podCheckpointName, metav1.GetOptions{})
+	klog.Warningf("the podcheckpoint is %q\n", podcheckpoint)
+	if errors.IsNotFound(err) {
+		klog.V(3).Infof("Podcheckpoint %q (%s) does not exist on the server", status.podCheckpointName, uid)
+		// If the Pod is deleted the status will be cleared in
+		// RemoveOrphanedStatuses, so we just ignore the update here.
+		return
+	}
+	if err != nil {
+		klog.Warningf("Failed to get status for podcheckpoint %q: %v", format.PodDesc(status.podCheckpointName, status.podCheckpointNamespace, uid), err)
+		return
+	}
+
+	// oldStatus := podcheckpoint.Status.DeepCopy()
+	podcheckpoint.Status = status.status
+	klog.Warningf("the podcheckpoint status is %q\n", podcheckpoint.Status)
+	newPodCheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(podcheckpoint.Namespace).Update(context.TODO(), podcheckpoint, apimachineryv1.UpdateOptions{})
+	podcheckpoint_new, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(status.podCheckpointNamespace).Get(context.TODO(), status.podCheckpointName, metav1.GetOptions{})
+	klog.Warningf("the podcheckpoint_new is %q\n", podcheckpoint_new)
+	if err != nil {
+		klog.Warningf("Failed to update status for podcheckpoint %q: %v", fmt.Sprintf("%s_%s(%s)", podcheckpoint.Name, podcheckpoint.Namespace, podcheckpoint.UID), err)
+		klog.Warningf("the newPodCheckpoint is %q\n", newPodCheckpoint)
+		klog.Warningf("the PodCheckpoint status is %q, newpodcheckpointstatus is %q\n", podcheckpoint.Status, newPodCheckpoint.Status)
+		return
+	}
+
+	klog.V(0).Infof("Status for podcheckpoint %q updated successfully: (%d, %+v)", fmt.Sprintf("%s_%s(%s)", podcheckpoint.Name, podcheckpoint.Namespace, podcheckpoint.UID), status.version, status.status)
+	klog.V(0).Infof("Status for newpodcheckpoint %v", newPodCheckpoint.Status)
+	// newPodCheckpoint, patchBytes, err := podcheckpointstatusutil.PatchPodCheckpointStatus(m.podcheckpointClient, podcheckpoint.Namespace, podcheckpoint.Name, *oldStatus, status.status)
+	// glog.V(3).Infof("Patch status for podcheckpoint %q with %q", fmt.Sprintf("%s_%s(%s)", podcheckpoint.Name, podcheckpoint.Namespace, podcheckpoint.UID), patchBytes)
+	// if err != nil {
+	// 	glog.Warningf("Failed to update status for podcheckpoint %q: %v", fmt.Sprintf("%s_%s(%s)", podcheckpoint.Name, podcheckpoint.Namespace, podcheckpoint.UID), err)
+	// 	return
+	// }
+	// podcheckpoint = newPodCheckpoint
+
+	// glog.V(3).Infof("Status for podcheckpoint %q updated successfully: (%d, %+v)", fmt.Sprintf("%s_%s(%s)", podcheckpoint.Name, podcheckpoint.Namespace, podcheckpoint.UID), status.version, status.status)
+
 }
 
 // needsUpdate returns whether the status is stale for the given pod UID.

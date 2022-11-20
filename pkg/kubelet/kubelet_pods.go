@@ -296,7 +296,7 @@ func translateMountPropagation(mountMode *v1.MountPropagationMode) (runtimeapi.M
 	}
 }
 
-// getEtcHostsPath returns the full host-side path to a pod's generated /etc/hosts file
+// getEtcHostsPath returns the full host-side path to a pod's pkg /etc/hosts file
 func getEtcHostsPath(podDir string) string {
 	return path.Join(podDir, "etc-hosts")
 }
@@ -365,7 +365,7 @@ func managedHostsFileContent(hostIPs []string, hostName, hostDomainName string, 
 	buffer.WriteString("fe00::1\tip6-allnodes\n")
 	buffer.WriteString("fe00::2\tip6-allrouters\n")
 	if len(hostDomainName) > 0 {
-		// host entry generated for all IPs in podIPs
+		// host entry pkg for all IPs in podIPs
 		// podIPs field is populated for clusters even
 		// dual-stack feature flag is not enabled.
 		for _, hostIP := range hostIPs {
@@ -758,7 +758,7 @@ func (kl *Kubelet) makeEnvironmentVariables(pod *v1.Pod, container *v1.Container
 		}
 		// Accesses apiserver+Pods.
 		// So, the master may set service env vars, or kubelet may.  In case both are doing
-		// it, we delete the key from the kubelet-generated ones so we don't have duplicate
+		// it, we delete the key from the kubelet-pkg ones so we don't have duplicate
 		// env vars.
 		// TODO: remove this next line once all platforms use apiserver+Pods.
 		delete(serviceEnv, envVar.Name)
@@ -775,7 +775,7 @@ func (kl *Kubelet) makeEnvironmentVariables(pod *v1.Pod, container *v1.Container
 	for k, v := range serviceEnv {
 		// Accesses apiserver+Pods.
 		// So, the master may set service env vars, or kubelet may.  In case both are doing
-		// it, we skip the key from the kubelet-generated ones so we don't have duplicate
+		// it, we skip the key from the kubelet-pkg ones so we don't have duplicate
 		// env vars.
 		// TODO: remove this next line once all platforms use apiserver+Pods.
 		if _, present := tmpEnv[k]; !present {

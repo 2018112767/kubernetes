@@ -18,6 +18,7 @@ package types
 
 import (
 	"fmt"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +52,9 @@ const (
 	// Pods with the given ids have been restored from a checkpoint.
 	RESTORE
 
+	//Checkpoint Pods
+	CHECKPOINT
+
 	// These constants identify the sources of pods
 	// Updates from a file
 	FileSource = "file"
@@ -72,11 +76,12 @@ const (
 //
 // Additionally, Pods should never be nil - it should always point to an empty slice. While
 // functionally similar, this helps our unit tests properly check that the correct PodUpdates
-// are generated.
+// are pkg.
 type PodUpdate struct {
-	Pods   []*v1.Pod
-	Op     PodOperation
-	Source string
+	Pods          []*v1.Pod
+	PodCheckpoint *v1alpha1.PodCheckpoint
+	Op            PodOperation
+	Source        string
 }
 
 // Gets all validated sources from the specified sources.
@@ -120,6 +125,8 @@ const (
 	// SyncPodKill is when the pod is killed based on a trigger internal to the kubelet for eviction.
 	// If a SyncPodKill request is made to pod workers, the request is never dropped, and will always be processed.
 	SyncPodKill
+	// SyncPodCheckpoint is when the pod is checkpointed from source
+	SyncPodCheckpoint
 )
 
 func (sp SyncPodType) String() string {
@@ -132,6 +139,8 @@ func (sp SyncPodType) String() string {
 		return "sync"
 	case SyncPodKill:
 		return "kill"
+	case SyncPodCheckpoint:
+		return "checkpoint"
 	default:
 		return "unknown"
 	}

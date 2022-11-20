@@ -578,7 +578,7 @@ func TestMounterSetUpWithInline(t *testing.T) {
 			}
 
 			if csiMounter.volumeLifecycleMode == storage.VolumeLifecycleEphemeral && csiMounter.volumeID != makeVolumeHandle(string(tc.podUID), csiMounter.specVolumeID) {
-				t.Fatal("unexpected generated volumeHandle:", csiMounter.volumeID)
+				t.Fatal("unexpected pkg volumeHandle:", csiMounter.volumeID)
 			}
 
 			if csiMounter.volumeLifecycleMode == storage.VolumeLifecyclePersistent {

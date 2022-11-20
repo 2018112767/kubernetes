@@ -201,7 +201,7 @@ func genMarkdown(command *cobra.Command, parent, docsDir string) {
 
 	out.WriteString(`
 # HISTORY
-January 2015, Originally compiled by Eric Paris (eparis at redhat dot com) based on the kubernetes source material, but hopefully they have been automatically generated since!
+January 2015, Originally compiled by Eric Paris (eparis at redhat dot com) based on the kubernetes source material, but hopefully they have been automatically pkg since!
 `)
 
 	final := mangen.Render(out.Bytes())

@@ -62,7 +62,7 @@ func (m *ManagerImpl) GetTopologyHints(pod *v1.Pod, container *v1.Container) map
 				continue
 			}
 
-			// Get the list of available devices, for which TopologyHints should be generated.
+			// Get the list of available devices, for which TopologyHints should be pkg.
 			available := m.getAvailableDevices(resource)
 			reusable := m.devicesToReuse[string(pod.UID)][resource]
 			if available.Union(reusable).Len() < requested {

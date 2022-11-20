@@ -78,7 +78,7 @@ func Test_MarkVolumeAsAttached_Positive_NewVolume(t *testing.T) {
 
 // Calls MarkVolumeAsAttached() once to add volume, specifying a name --
 // establishes that the supplied volume name is used to register the volume
-// rather than the generated one.
+// rather than the pkg one.
 // Verifies newly added volume exists in GetUnmountedVolumes()
 // Verifies newly added volume doesn't exist in GetGloballyMountedVolumes()
 func Test_MarkVolumeAsAttached_SuppliedVolumeName_Positive_NewVolume(t *testing.T) {

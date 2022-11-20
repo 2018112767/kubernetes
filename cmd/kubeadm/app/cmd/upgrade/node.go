@@ -75,7 +75,7 @@ func NewCmdNode() *cobra.Command {
 	}
 
 	// adds flags to the node command
-	// flags could be eventually inherited by the sub-commands automatically generated for phases
+	// flags could be eventually inherited by the sub-commands automatically pkg for phases
 	addUpgradeNodeFlags(cmd.Flags(), nodeOptions)
 	options.AddKustomizePodsFlag(cmd.Flags(), &nodeOptions.kustomizeDir)
 

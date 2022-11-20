@@ -30,10 +30,10 @@ type keyVal struct {
 // MakeNodesAndPodsForEvenPodsSpread serves as a testing helper for EvenPodsSpread feature.
 // It builds a fake cluster containing running Pods and Nodes.
 // The size of Pods and Nodes are determined by input arguments.
-// The specs of Pods and Nodes are generated with the following rules:
-// - Each generated node is applied with a unique label: "node: node<i>".
-// - Each generated node is applied with a rotating label: "zone: zone[0-9]".
-// - Depending on the input labels, each generated pod will be applied with
+// The specs of Pods and Nodes are pkg with the following rules:
+// - Each pkg node is applied with a unique label: "node: node<i>".
+// - Each pkg node is applied with a rotating label: "zone: zone[0-9]".
+// - Depending on the input labels, each pkg pod will be applied with
 //   label "key1", "key1,key2", ..., "key1,key2,...,keyN" in a rotating manner.
 func MakeNodesAndPodsForEvenPodsSpread(labels map[string]string, existingPodsNum, allNodesNum, filteredNodesNum int) (existingPods []*v1.Pod, allNodes []*v1.Node, filteredNodes []*v1.Node) {
 	var labelPairs []keyVal

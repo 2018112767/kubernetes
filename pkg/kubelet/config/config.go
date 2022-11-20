@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"k8s.io/podcheckpoint/pkg/apis/podcheckpointcontroller/v1alpha1"
 	"reflect"
 	"sync"
 
@@ -165,6 +166,21 @@ func newPodStorage(updates chan<- kubetypes.PodUpdate, mode PodConfigNotificatio
 	}
 }
 
+func getPodsbyName(pods map[types.UID]*v1.Pod, source string, podcheckpoint *v1alpha1.PodCheckpoint, recorder record.EventRecorder) (*v1.Pod, bool) {
+	name := podcheckpoint.Spec.PodName + "_" + podcheckpoint.Namespace
+	fmt.Printf("podcheckpoint name:%s", name)
+	for _, pod := range pods {
+		// Pods from each source are assumed to have passed validation individually.
+		// This function only checks if there is any naming conflict.
+		podname := kubecontainer.GetPodFullName(pod)
+		fmt.Printf("oldpod name:%s", podname)
+		if podname == name {
+			return pod, true
+		}
+	}
+	return nil, false
+}
+
 // Merge normalizes a set of incoming changes from different sources into a map of all Pods
 // and ensures that redundant changes are filtered out, and then pushes zero or more minimal
 // updates onto the update channel.  Ensures that updates are delivered in order.
@@ -173,58 +189,78 @@ func (s *podStorage) Merge(source string, change interface{}) error {
 	defer s.updateLock.Unlock()
 
 	seenBefore := s.sourcesSeen.Has(source)
-	adds, updates, deletes, removes, reconciles, restores := s.merge(source, change)
+
 	firstSet := !seenBefore && s.sourcesSeen.Has(source)
+	update := change.(kubetypes.PodUpdate)
 
-	// deliver update notifications
-	switch s.mode {
-	case PodConfigNotificationIncremental:
-		if len(removes.Pods) > 0 {
-			s.updates <- *removes
-		}
-		if len(adds.Pods) > 0 {
-			s.updates <- *adds
-		}
-		if len(updates.Pods) > 0 {
-			s.updates <- *updates
-		}
-		if len(deletes.Pods) > 0 {
-			s.updates <- *deletes
-		}
-		if len(restores.Pods) > 0 {
-			s.updates <- *restores
-		}
-		if firstSet && len(adds.Pods) == 0 && len(updates.Pods) == 0 && len(deletes.Pods) == 0 {
-			// Send an empty update when first seeing the source and there are
-			// no ADD or UPDATE or DELETE pods from the source. This signals kubelet that
-			// the source is ready.
-			s.updates <- *adds
-		}
-		// Only add reconcile support here, because kubelet doesn't support Snapshot update now.
-		if len(reconciles.Pods) > 0 {
-			s.updates <- *reconciles
+	if update.Op == kubetypes.CHECKPOINT {
+		fmt.Printf("Get PodCheckpoint Change!!!:%v", update)
+		if pod, found := getPodsbyName(s.pods[source], source, update.PodCheckpoint, s.recorder); found {
+			update.Pods = append(update.Pods, pod)
+			//Initialize PodCheckpoint ContainerConditions
+			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
+				containerCondition := v1alpha1.ContainerCondition{ContainerName: pod.Status.ContainerStatuses[i].Name, ContainerID: pod.Status.ContainerStatuses[i].ContainerID, CheckpointPhase: v1alpha1.ContainerPrepareCheckpoint}
+				update.PodCheckpoint.Status.ContainerConditions = append(update.PodCheckpoint.Status.ContainerConditions, containerCondition)
+			}
+			fmt.Printf("Pod have been found by name!!!:%v", update)
+			fmt.Printf("Pod Checkpoint!!!:%v", update.PodCheckpoint)
+			s.updates <- update
+		} else {
+			fmt.Errorf("no such pod ,name:%s", update.PodCheckpoint.Spec.PodName)
 		}
 
-	case PodConfigNotificationSnapshotAndUpdates:
-		if len(removes.Pods) > 0 || len(adds.Pods) > 0 || firstSet {
-			s.updates <- kubetypes.PodUpdate{Pods: s.MergedState().([]*v1.Pod), Op: kubetypes.SET, Source: source}
-		}
-		if len(updates.Pods) > 0 {
-			s.updates <- *updates
-		}
-		if len(deletes.Pods) > 0 {
-			s.updates <- *deletes
-		}
+	} else {
+		adds, updates, deletes, removes, reconciles, restores := s.merge(source, change)
+		// deliver update notifications
+		switch s.mode {
+		case PodConfigNotificationIncremental:
+			if len(removes.Pods) > 0 {
+				s.updates <- *removes
+			}
+			if len(adds.Pods) > 0 {
+				s.updates <- *adds
+			}
+			if len(updates.Pods) > 0 {
+				s.updates <- *updates
+			}
+			if len(deletes.Pods) > 0 {
+				s.updates <- *deletes
+			}
+			if len(restores.Pods) > 0 {
+				s.updates <- *restores
+			}
+			if firstSet && len(adds.Pods) == 0 && len(updates.Pods) == 0 && len(deletes.Pods) == 0 {
+				// Send an empty update when first seeing the source and there are
+				// no ADD or UPDATE or DELETE pods from the source. This signals kubelet that
+				// the source is ready.
+				s.updates <- *adds
+			}
+			// Only add reconcile support here, because kubelet doesn't support Snapshot update now.
+			if len(reconciles.Pods) > 0 {
+				s.updates <- *reconciles
+			}
 
-	case PodConfigNotificationSnapshot:
-		if len(updates.Pods) > 0 || len(deletes.Pods) > 0 || len(adds.Pods) > 0 || len(removes.Pods) > 0 || firstSet {
-			s.updates <- kubetypes.PodUpdate{Pods: s.MergedState().([]*v1.Pod), Op: kubetypes.SET, Source: source}
-		}
+		case PodConfigNotificationSnapshotAndUpdates:
+			if len(removes.Pods) > 0 || len(adds.Pods) > 0 || firstSet {
+				s.updates <- kubetypes.PodUpdate{Pods: s.MergedState().([]*v1.Pod), Op: kubetypes.SET, Source: source}
+			}
+			if len(updates.Pods) > 0 {
+				s.updates <- *updates
+			}
+			if len(deletes.Pods) > 0 {
+				s.updates <- *deletes
+			}
 
-	case PodConfigNotificationUnknown:
-		fallthrough
-	default:
-		panic(fmt.Sprintf("unsupported PodConfigNotificationMode: %#v", s.mode))
+		case PodConfigNotificationSnapshot:
+			if len(updates.Pods) > 0 || len(deletes.Pods) > 0 || len(adds.Pods) > 0 || len(removes.Pods) > 0 || firstSet {
+				s.updates <- kubetypes.PodUpdate{Pods: s.MergedState().([]*v1.Pod), Op: kubetypes.SET, Source: source}
+			}
+
+		case PodConfigNotificationUnknown:
+			fallthrough
+		default:
+			panic(fmt.Sprintf("unsupported PodConfigNotificationMode: %#v", s.mode))
+		}
 	}
 
 	return nil
@@ -440,11 +476,11 @@ func podsDifferSemantically(existing, ref *v1.Pod) bool {
 }
 
 // checkAndUpdatePod updates existing, and:
-//   * if ref makes a meaningful change, returns needUpdate=true
-//   * if ref makes a meaningful change, and this change is graceful deletion, returns needGracefulDelete=true
-//   * if ref makes no meaningful change, but changes the pod status, returns needReconcile=true
-//   * else return all false
-//   Now, needUpdate, needGracefulDelete and needReconcile should never be both true
+//   - if ref makes a meaningful change, returns needUpdate=true
+//   - if ref makes a meaningful change, and this change is graceful deletion, returns needGracefulDelete=true
+//   - if ref makes no meaningful change, but changes the pod status, returns needReconcile=true
+//   - else return all false
+//     Now, needUpdate, needGracefulDelete and needReconcile should never be both true
 func checkAndUpdatePod(existing, ref *v1.Pod) (needUpdate, needReconcile, needGracefulDelete bool) {
 
 	// 1. this is a reconcile

@@ -340,7 +340,7 @@ func TestFuzzed(t *testing.T) {
 		if gen.Effect == api.TaintEffectNoExecute && r.Float32() < tolerationSecondsProbability {
 			gen.TolerationSeconds = utilpointer.Int64Ptr(r.Int63n(10))
 		}
-		// Ensure only valid tolerations are generated.
+		// Ensure only valid tolerations are pkg.
 		require.NoError(t, validation.ValidateTolerations([]api.Toleration{gen}, field.NewPath("")).ToAggregate(), "%#v", gen)
 		return gen
 	}

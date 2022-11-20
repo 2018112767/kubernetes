@@ -80,7 +80,7 @@ func main() {
 		kubeadm := kubeadmapp.NewKubeadmCommand(os.Stdin, os.Stdout, os.Stderr)
 		doc.GenMarkdownTree(kubeadm, outDir)
 
-		// cleanup generated code for usage as include in the website
+		// cleanup pkg code for usage as include in the website
 		MarkdownPostProcessing(kubeadm, outDir, cleanupForInclude)
 	default:
 		fmt.Fprintf(os.Stderr, "Module %s is not supported", module)

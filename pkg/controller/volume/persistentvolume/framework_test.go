@@ -70,7 +70,7 @@ import (
 //   - testSyncVolume - calls syncVolume on the first volume in initialVolumes.
 //   - any custom function for specialized tests.
 // The test then contains list of volumes/claims that are expected at the end
-// of the test and list of generated events.
+// of the test and list of pkg events.
 type controllerTest struct {
 	// Name of the test, for logging
 	name string
@@ -157,7 +157,7 @@ func (r *volumeReactor) waitTest(test controllerTest) error {
 	return err
 }
 
-// checkEvents compares all expectedEvents with events generated during the test
+// checkEvents compares all expectedEvents with events pkg during the test
 // and reports differences.
 func checkEvents(t *testing.T, expectedEvents []string, ctrl *PersistentVolumeController) error {
 	var err error
@@ -776,7 +776,7 @@ func runMultisyncTests(t *testing.T, tests []controllerTest, storageClasses []*s
 						break
 					}
 				}
-				// Process generated changes
+				// Process pkg changes
 				continue
 			case *v1.PersistentVolume:
 				volume := obj.(*v1.PersistentVolume)
@@ -793,7 +793,7 @@ func runMultisyncTests(t *testing.T, tests []controllerTest, storageClasses []*s
 						break
 					}
 				}
-				// Process generated changes
+				// Process pkg changes
 				continue
 			}
 		}

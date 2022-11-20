@@ -84,7 +84,7 @@ var _ volume.Volume = &csiMountMgr{}
 
 func (c *csiMountMgr) GetPath() string {
 	dir := filepath.Join(getTargetPath(c.podUID, c.specVolumeID, c.plugin.host), "/mount")
-	klog.V(4).Info(log("mounter.GetPath generated [%s]", dir))
+	klog.V(4).Info(log("mounter.GetPath pkg [%s]", dir))
 	return dir
 }
 

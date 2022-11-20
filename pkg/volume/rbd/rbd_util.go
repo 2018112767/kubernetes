@@ -397,7 +397,7 @@ func (util *rbdUtil) AttachDisk(b rbdMounter) (string, error) {
 		// Currently, we don't acquire advisory lock on image, but for backward
 		// compatibility, we need to check if the image is being used by nodes running old kubelet.
 		// osd_client_watch_timeout defaults to 30 seconds, if the watcher stays active longer than 30 seconds,
-		// rbd image does not get mounted and failure message gets generated.
+		// rbd image does not get mounted and failure message gets pkg.
 		backoff := wait.Backoff{
 			Duration: rbdImageWatcherInitDelay,
 			Factor:   rbdImageWatcherFactor,

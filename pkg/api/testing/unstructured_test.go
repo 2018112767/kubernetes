@@ -50,7 +50,7 @@ func doRoundTrip(t *testing.T, internalVersion schema.GroupVersion, externalVers
 	seed := rand.Int63()
 	fuzzer.FuzzerFor(FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs).
 		// We are explicitly overwriting custom fuzzing functions, to ensure
-		// that InitContainers and their statuses are not generated. This is
+		// that InitContainers and their statuses are not pkg. This is
 		// because in this test we are simply doing json operations, in which
 		// those disappear.
 		Funcs(
