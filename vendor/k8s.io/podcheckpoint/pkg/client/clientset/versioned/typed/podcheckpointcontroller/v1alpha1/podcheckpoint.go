@@ -19,6 +19,7 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -123,6 +124,7 @@ func (c *podCheckpoints) Create(ctx context.Context, podCheckpoint *v1alpha1.Pod
 
 // Update takes the representation of a podCheckpoint and updates it. Returns the server's representation of the podCheckpoint, and an error, if there is any.
 func (c *podCheckpoints) Update(ctx context.Context, podCheckpoint *v1alpha1.PodCheckpoint, opts v1.UpdateOptions) (result *v1alpha1.PodCheckpoint, err error) {
+	fmt.Println("invoke podCheckpoints.Update")
 	result = &v1alpha1.PodCheckpoint{}
 	err = c.client.Put().
 		Namespace(c.ns).

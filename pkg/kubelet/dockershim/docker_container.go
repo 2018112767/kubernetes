@@ -323,7 +323,7 @@ func (ds *dockerService) StartContainerFromCheckpoint(_ context.Context, r *runt
 
 // CheckpointContainer checkpoint the container
 func (ds *dockerService) CheckpointContainer(_ context.Context, r *runtimeapi.CheckpointContainerRequest) (*runtimeapi.StartContainerResponse, error) {
-	fmt.Println("Invoke dockerService.CheckpointContainer")
+	klog.Warningln("Invoke dockerService.CheckpointContainer")
 
 	err := ds.client.CheckpointContainer(r.ContainerId, r.Checkpoint, r.CheckpointDir, r.PreDump)
 

@@ -264,6 +264,7 @@ func (c *Controller) enqueuePodCheckpoint(obj interface{}) {
 // It then enqueues that PodCheckpoint resource to be processed. If the object does not
 // have an appropriate OwnerReference, it will simply be skipped.
 func (c *Controller) handleObject(obj interface{}) {
+
 	var object metav1.Object
 	var ok bool
 	if object, ok = obj.(metav1.Object); !ok {
@@ -297,4 +298,3 @@ func (c *Controller) handleObject(obj interface{}) {
 		return
 	}
 }
-

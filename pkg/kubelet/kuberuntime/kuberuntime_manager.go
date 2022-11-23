@@ -659,7 +659,7 @@ func (m *kubeGenericRuntimeManager) computePodActions(pod *v1.Pod, podStatus *ku
 
 // execute checkpoint containers in pod
 func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint, secret *v1.Secret) {
-	klog.Infof("invoke kubeGenericRuntimeManager.CheckpointPod ")
+	klog.Warningln("invoke kubeGenericRuntimeManager.CheckpointPod ")
 	succeeded_once := false
 	failed_once := false
 
@@ -670,7 +670,7 @@ func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1
 		if preDump {
 			finalDump = false
 			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-				fmt.Printf("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
+				klog.Warningln("traverse containerStatus : ", pod.Status.ContainerStatuses[i])
 				podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointing
 				dump, err := m.checkpointContainer(pod, &(pod.Status.ContainerStatuses[i]), podcheckpoint, secret, preDump, iterCount)
 				if err != nil {
@@ -686,7 +686,7 @@ func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1
 	}
 	klog.Infof("Final Dump!!!")
 	for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-		fmt.Printf("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
+		klog.Warningln("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
 		podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointing
 		_, err := m.checkpointContainer(pod, &(pod.Status.ContainerStatuses[i]), podcheckpoint, secret, preDump, iterCount)
 		if err != nil {

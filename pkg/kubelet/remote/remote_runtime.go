@@ -246,11 +246,11 @@ func (r *RemoteRuntimeService) StartContainerFromCheckpoint(containerID string, 
 
 // StartContainerFromCheckpoint starts the containe from checkpoint
 func (r *RemoteRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
-	fmt.Println("Invoke RemoteRuntimeService.CheckpointContainer")
+	klog.Warningln("Invoke RemoteRuntimeService.CheckpointContainer")
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
 
-	fmt.Println("Invoke docker-shim.CheckpointContainer")
+	klog.Warningln("Invoke docker-shim.CheckpointContainer")
 	_, err := r.runtimeClient.CheckpointContainer(ctx, &runtimeapi.CheckpointContainerRequest{
 		ContainerId:   containerID,
 		Checkpoint:    checkpoint,

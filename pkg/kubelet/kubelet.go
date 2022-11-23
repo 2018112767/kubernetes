@@ -1523,22 +1523,55 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 	updateType := o.updateType
 
 	var ossSecret *v1.Secret
-	if podCheckpointName := pod.Annotations["podCheckpoint"]; podCheckpointName != "" {
+	//if podCheckpointName := pod.Annotations["podCheckpoint"]; podCheckpointName != "" {
+	//
+	//	podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(pod.Namespace).Get(context.TODO(), podCheckpointName, metav1.GetOptions{})
+	//	if apierrors.IsNotFound(err) {
+	//		klog.V(3).Infof("Podcheckpoint %q does not exist on the server", podCheckpointName)
+	//		// If the Pod is deleted the status will be cleared in
+	//		// RemoveOrphanedStatuses, so we just ignore the update here.
+	//		return err
+	//	}
+	//	if err != nil {
+	//		klog.Warningf("Failed to get podcheckpoint %s", podCheckpointName, err)
+	//		return err
+	//	}
+	//	ossSecretName := podcheckpoint.Spec.SecretName
+	//	fmt.Println("ossSecretName = ", ossSecretName)
+	//	fmt.Println("o.pod.Namespace = ", o.pod.Namespace)
+	//
+	//	Secret, err := kl.kubeClient.CoreV1().Secrets(o.pod.Namespace).Get(context.TODO(), ossSecretName, metav1.GetOptions{})
+	//	ossSecret = Secret
+	//
+	//	if ossSecret == nil {
+	//		fmt.Println("Can't read osssecret")
+	//	}
+	//	if err != nil {
+	//		fmt.Println("The Oss ak hasn't been Set Correctlly! Error: ", err)
+	//	}
+	//}
 
-		podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(pod.Namespace).Get(context.TODO(), podCheckpointName, metav1.GetOptions{})
+	if updateType == kubetypes.SyncPodCheckpoint {
+
+		podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(o.podcheckpoint.Namespace).Get(context.TODO(), o.podcheckpoint.Name, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("can't get podcheckpoint")
+		}
+
+		//podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(pod.Namespace).Get(context.TODO(), podCheckpointName, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			klog.V(3).Infof("Podcheckpoint %q does not exist on the server", podCheckpointName)
+			klog.V(3).Infof("Podcheckpoint %q does not exist on the server", o.podcheckpoint.Namespace)
 			// If the Pod is deleted the status will be cleared in
 			// RemoveOrphanedStatuses, so we just ignore the update here.
 			return err
 		}
 		if err != nil {
-			klog.Warningf("Failed to get podcheckpoint %s", podCheckpointName, err)
+			klog.Warningf("Failed to get podcheckpoint %s", o.podcheckpoint.Namespace, err)
 			return err
 		}
 		ossSecretName := podcheckpoint.Spec.SecretName
-		fmt.Println("ossSecretName = ", ossSecretName)
-		fmt.Println("o.pod.Namespace = ", o.pod.Namespace)
+		klog.Infoln("ossSecretName = ", ossSecretName)
+		klog.Infoln("o.pod.Namespace = ", o.pod.Namespace)
 
 		Secret, err := kl.kubeClient.CoreV1().Secrets(o.pod.Namespace).Get(context.TODO(), ossSecretName, metav1.GetOptions{})
 		ossSecret = Secret
@@ -1549,17 +1582,30 @@ func (kl *Kubelet) syncPod(o syncPodOptions) error {
 		if err != nil {
 			fmt.Println("The Oss ak hasn't been Set Correctlly! Error: ", err)
 		}
-	}
 
-	if updateType == kubetypes.SyncPodCheckpoint {
 		o.podcheckpoint.Status.Phase = v1alpha1.PodCheckpointing
-		fmt.Println("Entering SetPodcheckpointStatus firstly, the status is ", o.podcheckpoint.Status.Phase)
+		klog.Warningln("Entering SetPodcheckpointStatus firstly, the status is ", o.podcheckpoint.Status.Phase)
 		kl.statusManager.SetPodCheckpointStatus(o.podcheckpoint, o.podcheckpoint.Status)
-		fmt.Println("Finished SetPodcheckpointStatus firstly and entering checkpoint, the status is ", o.podcheckpoint.Status.Phase)
+
+		//podcheckpoint, err := kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(o.podcheckpoint.Namespace).Get(context.TODO(), o.podcheckpoint.Name, metav1.GetOptions{})
+		//if err != nil {
+		//	klog.Errorf("can't get podcheckpoint")
+		//}
+		klog.Warningln("after SetPodCheckpointStatus, the podcheckpoint's status is ", podcheckpoint.Status.Phase)
+
+		klog.Warningln("Finished SetPodcheckpointStatus firstly and entering checkpoint, the status is ", o.podcheckpoint.Status.Phase)
 		kl.containerRuntime.CheckpointPod(pod, o.podcheckpoint, ossSecret)
-		fmt.Println("Finished checkpoint and entering SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
+
+		klog.Warningln("Finished checkpoint and entering SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
 		kl.statusManager.SetPodCheckpointStatus(o.podcheckpoint, o.podcheckpoint.Status)
-		fmt.Println("Finished SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
+
+		podcheckpoint, err = kl.podCheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(o.podcheckpoint.Namespace).Get(context.TODO(), o.podcheckpoint.Name, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("can't get podcheckpoint")
+		}
+		klog.Warningln("after SetPodCheckpointStatus, the podcheckpoint's status is ", podcheckpoint.Status.Phase)
+
+		klog.Warningln("Finished SetPodCheckpointStatus secondly, the status is ", o.podcheckpoint.Status.Phase)
 		return nil
 	}
 
@@ -2019,7 +2065,7 @@ func (kl *Kubelet) syncLoopIteration(configCh <-chan kubetypes.PodUpdate, handle
 			klog.Errorf("Kubelet does not support snapshot update")
 		case kubetypes.CHECKPOINT:
 			klog.V(2).Infof("SyncLoop Checkpoint:%v", u.PodCheckpoint)
-			fmt.Println("Entering syncLoopIteration")
+			klog.Warningf("Entering syncLoopIteration")
 			handler.HandlePodCheckpoint(u.Pods, u.PodCheckpoint)
 		}
 
@@ -2194,8 +2240,7 @@ func (kl *Kubelet) HandlePodUpdates(pods []*v1.Pod) {
 // being checkpointed from a config source.
 func (kl *Kubelet) HandlePodCheckpoint(pods []*v1.Pod, podcheckpoint *v1alpha1.PodCheckpoint) {
 	start := kl.clock.Now()
-	fmt.Println("Enter HandlePodCheckpoint")
-	fmt.Println("podcheckpoint.Status.Phase = ", podcheckpoint.Status.Phase)
+	fmt.Println("Enter HandlePodCheckpoint, and now podcheckpoint.Status.Phase =", podcheckpoint.Status.Phase)
 	if podcheckpoint.Status.Phase == v1alpha1.PodPrepareCheckpoint {
 		for _, pod := range pods {
 			// Responsible for checking limits in resolv.conf

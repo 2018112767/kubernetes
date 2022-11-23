@@ -79,11 +79,14 @@ git clone https://github.com/2018112767/cli.git
 cd cli
 git checkout -b t19 origin/t19
 
-mv kubelet /usr/bin/kubelet
-mv kubectl /usr/bin/kubectl
+
+mv /usr/bin/kubelet /usr/bin/kubelet.back
+mv /usr/bin/kubectl /usr/bin/kubectl.back
+mv _output/dockerized/bin/linux/amd64/kubelet /usr/bin/kubelet
+mv _output/dockerized/bin/linux/amd64/kubectl /usr/bin/kubectl
 systemctl restart kubelet
 journalctl -xeu kubelet
 
 kubectl get podcheckpoints
 kubectl delete podcheckpoints podcheckpoint-sample
-kubectl apply -f vendor/k8s.io/podcheckpoint/crds/podcheckpoint.yaml --node=migrate=true
+kubectl migrate -f vendor/k8s.io/podcheckpoint/crds/podcheckpoint.yaml --node=migrate=true

@@ -7,3 +7,5 @@ spec: # specification of the resource content(资源内容的规范)
   containers: # 容器列表
     - name: crtest # 容器名称
       image: bin1136021767/crtest:v1 # 容器镜像
+  nodeSelector:
+    migrate: src

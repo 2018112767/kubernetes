@@ -194,6 +194,7 @@ func (m *manager) Start() {
 					syncRequest.podUID, syncRequest.status.version, syncRequest.status.status)
 				m.syncPod(syncRequest.podUID, syncRequest.status)
 			case syncCheckpointRequest := <-m.podCheckpointStatusChannel:
+
 				klog.V(5).Infof("Status Manager: syncing podcheckpoint: %q, with status: (%d, %v) from podCheckpointStatusChannel",
 					syncCheckpointRequest.podCheckpointUID, syncCheckpointRequest.status.version, syncCheckpointRequest.status.status)
 				klog.Warningf("Status Manager: syncing podcheckpoint: %q, with status: (%d, %v) from podCheckpointStatusChannel",
@@ -503,7 +504,7 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 // necessary. Returns whether an update was triggered.
 // This method IS NOT THREAD SAFE and must be called from a locked function.
 func (m *manager) updatePodCheckpointStatusInternal(podcheckpoint *v1alpha1.PodCheckpoint, status v1alpha1.PodCheckpointStatus, forceUpdate bool) bool {
-
+	klog.Warningf("invoke updatePodCheckpointStatusInternal")
 	cachedStatus, _ := m.podCheckpointStatuses[podcheckpoint.UID]
 
 	newStatus := versionedPodCheckpointStatus{
@@ -516,6 +517,8 @@ func (m *manager) updatePodCheckpointStatusInternal(podcheckpoint *v1alpha1.PodC
 
 	select {
 	case m.podCheckpointStatusChannel <- podCheckpointStatusSyncRequest{podcheckpoint.UID, newStatus}:
+		klog.Warningf("Status Manager: adding podcheckpoint: %q, with status: (%q, %v) to podCheckpointStatusChannel",
+			podcheckpoint.UID, newStatus.version, newStatus.status)
 		klog.V(5).Infof("Status Manager: adding podcheckpoint: %q, with status: (%q, %v) to podCheckpointStatusChannel",
 			podcheckpoint.UID, newStatus.version, newStatus.status)
 		return true
@@ -674,7 +677,9 @@ func (m *manager) syncPodCheckpoint(uid types.UID, status versionedPodCheckpoint
 	klog.Warningf("the status is %q\n", status)
 	// TODO: make me easier to express from client code
 	podcheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(status.podCheckpointNamespace).Get(context.TODO(), status.podCheckpointName, metav1.GetOptions{})
+
 	klog.Warningf("the podcheckpoint is %q\n", podcheckpoint)
+
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("Podcheckpoint %q (%s) does not exist on the server", status.podCheckpointName, uid)
 		// If the Pod is deleted the status will be cleared in
@@ -689,7 +694,8 @@ func (m *manager) syncPodCheckpoint(uid types.UID, status versionedPodCheckpoint
 	// oldStatus := podcheckpoint.Status.DeepCopy()
 	podcheckpoint.Status = status.status
 	klog.Warningf("the podcheckpoint status is %q\n", podcheckpoint.Status)
-	newPodCheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(podcheckpoint.Namespace).Update(context.TODO(), podcheckpoint, apimachineryv1.UpdateOptions{})
+	newPodCheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(podcheckpoint.Namespace).UpdateStatus(context.TODO(), podcheckpoint, apimachineryv1.UpdateOptions{})
+	//newPodCheckpoint, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(podcheckpoint.Namespace).Update(context.TODO(), podcheckpoint, apimachineryv1.UpdateOptions{})
 	podcheckpoint_new, err := m.podcheckpointClient.PodcheckpointcontrollerV1alpha1().PodCheckpoints(status.podCheckpointNamespace).Get(context.TODO(), status.podCheckpointName, metav1.GetOptions{})
 	klog.Warningf("the podcheckpoint_new is %q\n", podcheckpoint_new)
 	if err != nil {

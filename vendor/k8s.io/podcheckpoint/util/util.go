@@ -29,6 +29,7 @@ package util
 
 import (
 	"fmt"
+	"k8s.io/klog"
 	"os/exec"
 	"strings"
 
@@ -54,7 +55,7 @@ const (
 )
 
 func ProcessStorage(storage string, checkpointID string, op string, secret *v1.Secret) (string, error) {
-	fmt.Println("Start Process Storage! storage = ", storage)
+	klog.Warningln("Start Process Storage! storage = ", storage)
 	var (
 		checkpointDir string
 		err           error
@@ -68,16 +69,16 @@ func ProcessStorage(storage string, checkpointID string, op string, secret *v1.S
 
 	prefix := storage[0:start]
 	path := storage[start+3:]
-	fmt.Println("prefix = ", prefix)
-	fmt.Println("path = ", path)
+	klog.Warningln("prefix = ", prefix)
+	klog.Warningln("path = ", path)
 
 	if prefix == "oss" {
 		checkpointDir = DefaultCheckpointDir
 		ossOption := getOssOptionFromStorage(path, secret)
 		ossOption.ObjectName = checkpointID
-		fmt.Printf("ossOption: %v", ossOption)
+		klog.Warningln("ossOption: %v", ossOption)
 		if op == DOWNLOAD {
-			fmt.Printf("invoke DOWNLOAD")
+			klog.Warningln("invoke DOWNLOAD")
 			if err = downloadCheckpoint(ossOption); err != nil {
 				handleError(err)
 				return "", err
@@ -87,7 +88,7 @@ func ProcessStorage(storage string, checkpointID string, op string, secret *v1.S
 				fmt.Println("Error: ", err)
 			}
 		} else if op == UPLOAD {
-			fmt.Printf("invoke UPLOAD")
+			klog.Warningln("invoke UPLOAD")
 			c := exec.Command("tar", "-cvjf", checkpointDir+"/"+ossOption.ObjectName+".tar.gz", checkpointDir+"/"+checkpointID)
 			if err = c.Run(); err != nil {
 				fmt.Println("Error: ", err)
@@ -97,11 +98,11 @@ func ProcessStorage(storage string, checkpointID string, op string, secret *v1.S
 				return "", err
 			}
 		} else if op == CHECKPOINT {
-			fmt.Printf("invoke CHECKPOINT")
+			klog.Warningln("invoke CHECKPOINT")
 			return checkpointDir, nil
 		} else if op == CLEAR {
-			fmt.Println("invoke CLEAR")
-			fmt.Println("entering clear, remove checkpoint files, file path is: ", checkpointDir+"/"+checkpointID+"*")
+			klog.Warningln("invoke CLEAR")
+			klog.Warningln("entering clear, remove checkpoint files, file path is: ", checkpointDir+"/"+checkpointID+"*")
 			Cmd := "rm -rf " + checkpointDir + "/" + checkpointID + "*"
 			c := exec.Command("bash", "-c", Cmd)
 			if err = c.Run(); err != nil {
@@ -110,7 +111,7 @@ func ProcessStorage(storage string, checkpointID string, op string, secret *v1.S
 		}
 	} else if prefix == "file" {
 		checkpointDir = path
-		fmt.Println("checkpointDir is %s\n", path)
+		klog.Warningln("checkpointDir is %s\n", path)
 	}
 	return checkpointDir, nil
 }
@@ -156,19 +157,36 @@ func getOssOptionFromStorage(storage string, secret *v1.Secret) *OSSOption {
 	var pre string
 	var back string
 	pre, back = getNextSplitStr(storage, "/")
-	fmt.Println("pre = ", pre)
-	fmt.Println("back = ", back)
 	//fmt.Printf("secret: %v", secret)
 
 	if back == "" {
 		fmt.Println("PodCheckpoint.Spec.Storage is invalid")
 		return nil
 	}
+
+	for k, v := range secret.Data {
+		klog.Infoln("k = %s, v = %s", k, v)
+	}
+
 	ossOption.Endpoint = pre
+	//ossOption.AccessKeyId = "LTAI5tDncGtnwEdFNYn9MUVC"
+	//ossOption.AccessKeySecret = "ge7ktyzN3FLPKfvBVpu6Uk202L43Qe"
+
+	content, ok := secret.Data["accessKeyId"]
+	if !ok {
+		klog.Errorln("can not read accessKeyId")
+		return nil
+	}
+	ossOption.AccessKeyId = string(content)
+	content, ok = secret.Data["accessKeySecret"]
+	if !ok {
+		klog.Errorln("can not read accessKeySecret")
+		return nil
+	}
+	ossOption.AccessKeySecret = string(content)
 	//ossOption.AccessKeyId = string(secret.Data["accessKeyId"])
 	//ossOption.AccessKeySecret = string(secret.Data["accessKeySecret"])
-	ossOption.AccessKeyId = "LTAI5tGJ5u6nCqaY4dn98Tnw"
-	ossOption.AccessKeySecret = "qhT13h5UbM568FDcIykpsCuNnFrZHr"
+
 	ossOption.Bucket = back
 	return ossOption
 }

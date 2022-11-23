@@ -15,3 +15,6 @@ require (
 )
 
 replace github.com/go-criu => ../../github.com/go-criu
+replace (
+	k8s.io/klog/v2 v2.70.1 => ../klog
+)

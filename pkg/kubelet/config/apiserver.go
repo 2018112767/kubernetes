@@ -83,7 +83,7 @@ func newSourceApiserverFromLW(lw cache.ListerWatcher, updates chan<- interface{}
 func newPodCheckpointInformer(c clientset.Interface, updates chan<- interface{}, configFile string) {
 	stopCh := signals.SetupSignalHandler()
 	send := func(obj interface{}) {
-		fmt.Printf("exec podcheckpoint add func :%v ", obj)
+		klog.Warningf("exec podcheckpoint add func , podcheckpoint is : ", obj)
 		podcheckpoint := obj.(*v1alpha1.PodCheckpoint)
 		if podcheckpoint.Status.Phase == "" {
 			podcheckpoint.Status.Phase = v1alpha1.PodPrepareCheckpoint
@@ -94,11 +94,11 @@ func newPodCheckpointInformer(c clientset.Interface, updates chan<- interface{},
 	var kubeconfig string
 	if len(configFile) > 0 {
 		kubeconfig = configFile
-		fmt.Println("kubeletconfigFile : %+v", kubeconfig)
+		fmt.Println("kubeletconfigFile : ", kubeconfig)
 	} else {
 		if home := os.Getenv("HOME"); home != "" {
 			flag.StringVar(&kubeconfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) Absolute path to the kubeconfig file")
-			fmt.Println("kubeletconfig : %+v", kubeconfig)
+			fmt.Println("kubeletconfig : ", kubeconfig)
 		} else {
 			flag.StringVar(&kubeconfig, "kubeconfig", "", "Absolute path to the kubeconfig file")
 		}

@@ -177,7 +177,7 @@ func (d *kubeDockerClient) StartContainerFromCheckpoint(id string, checkpoint st
 }
 
 func (d *kubeDockerClient) CheckpointContainer(id string, checkpoint string, checkpointDir string, preDump bool) error {
-	fmt.Println("Invoke kubeDockerClient.CheckpointContainer")
+	klog.Warningln("Invoke kubeDockerClient.CheckpointContainer")
 
 	ctx, cancel := d.getTimeoutContext()
 	defer cancel()

@@ -28,63 +28,62 @@ limitations under the License.
 package dumpstats
 
 import (
-	"fmt"
+	"k8s.io/klog"
 	"os"
 	"strconv"
 
 	"github.com/go-criu/stats"
 	"github.com/golang/protobuf/proto"
-
 )
 
 var (
-	MAX_ITER_COUNT = 7
+	MAX_ITER_COUNT   = 7
 	MIN_PAGE_WRITTEN = 500
-	MAX_GROW_RATE = 10
+	MAX_GROW_RATE    = 10
 )
 
 func CheckPreCopy(iterCount int, checkpointDir string, containerName string) (bool, error) {
-	fmt.Println("Check if need precopy!")
+	klog.Warningln("Check if need precopy!")
 
 	if iterCount <= 1 {
 		dumpStatFile := checkpointDir + "/" + containerName + "_" + "Dump" + strconv.Itoa(iterCount) + "/criu.work" + "/stats-dump"
 		dumpstat, err := getDumpStats(dumpStatFile)
 		if err != nil {
-			fmt.Println("Get DumpStat Failed!!! error is %v", err)
+			klog.Errorln("Get DumpStat Failed!!! error is %v", err)
 			return false, err
 		}
-		var minPage uint64 = uint64(MIN_PAGE_WRITTEN) 
+		var minPage uint64 = uint64(MIN_PAGE_WRITTEN)
 		if *dumpstat.PagesWritten <= minPage {
-			fmt.Println("The dump pages is small enough to do final dump!!!")
+			klog.Errorln("The dump pages is small enough to do final dump!!!")
 			return false, nil
 		} else {
 			return true, nil
 		}
 	} else if iterCount >= MAX_ITER_COUNT {
-		fmt.Println("Reach the max iter count!!!")
+		klog.Warningln("Reach the max iter count!!!")
 		return false, nil
 	} else {
 		dumpStatFile := checkpointDir + "/" + containerName + "_" + "Dump" + strconv.Itoa(iterCount) + "/criu.work" + "/stats-dump"
 		dumpstat, err := getDumpStats(dumpStatFile)
 		if err != nil {
-			fmt.Println("Get DumpStat Failed!!! error is %v", err)
+			klog.Errorln("Get DumpStat Failed!!! error is %v", err)
 			return false, err
 		}
 
-		predumpStatFile := checkpointDir + "/" + containerName + "_" + "Dump" + strconv.Itoa(iterCount - 1) + "/criu.work" + "/stats-dump"
+		predumpStatFile := checkpointDir + "/" + containerName + "_" + "Dump" + strconv.Itoa(iterCount-1) + "/criu.work" + "/stats-dump"
 		predumpstat, err := getDumpStats(predumpStatFile)
 		if err != nil {
-			fmt.Println("Get PreDumpStat Failed!!! error is %v", err)
+			klog.Errorln("Get PreDumpStat Failed!!! error is %v", err)
 			return false, err
 		}
 		growRate := calGrowRate(*dumpstat.PagesWritten, *predumpstat.PagesWritten)
 		var Rate uint64 = uint64(MAX_GROW_RATE)
 		if growRate >= Rate {
-			fmt.Println("Written pages grows too fast with iteration!!!!")
+			klog.Errorln("Written pages grows too fast with iteration!!!!")
 			return false, nil
 		}
 	}
-	return true ,nil
+	return true, nil
 }
 
 func getDumpStats(filePath string) (*stats.DumpStatsEntry, error) {

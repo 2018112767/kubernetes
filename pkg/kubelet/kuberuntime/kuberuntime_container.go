@@ -95,8 +95,9 @@ func (m *kubeGenericRuntimeManager) recordContainerEvent(pod *v1.Pod, container 
 }
 
 func (m *kubeGenericRuntimeManager) checkpointContainer(pod *v1.Pod, containerStatus *v1.ContainerStatus, podcheckpoint *v1alpha1.PodCheckpoint, ossSecret *v1.Secret, preDump bool, iterCount int) (bool, error) {
-	fmt.Println("Invoke kubeGenericRuntimeManager.checkpointContainer!!!")
+	klog.Warningln("Invoke kubeGenericRuntimeManager.checkpointContainer!!!")
 	if containerStatus.ContainerID[0:9] == "docker://" {
+		klog.Warningln("containerStatus.ContainerID", containerStatus.ContainerID)
 		checkpointDir, err := storageutil.ProcessStorage(podcheckpoint.Spec.Storage, containerStatus.Name, "checkpoint", ossSecret)
 
 		if err != nil {
@@ -104,12 +105,12 @@ func (m *kubeGenericRuntimeManager) checkpointContainer(pod *v1.Pod, containerSt
 			return false, err
 		}
 
-		fmt.Println("checkpointDir = ", checkpointDir)
+		klog.Warningln("checkpointDir = ", checkpointDir)
 
 		if preDump {
 			checkpointID := containerStatus.Name + "_" + "Dump" + strconv.Itoa(iterCount)
 
-			fmt.Println("checkpointID = ", checkpointID)
+			klog.Warningln(" checkpointID = ", checkpointID)
 
 			err = m.runtimeService.CheckpointContainer(containerStatus.ContainerID[9:], checkpointID, checkpointDir, preDump)
 			if err != nil {
@@ -131,7 +132,7 @@ func (m *kubeGenericRuntimeManager) checkpointContainer(pod *v1.Pod, containerSt
 				return false, err
 			}
 
-			fmt.Println("checkpointContainer succeeed!!!\n")
+			klog.Warningln("checkpointContainer succeeed!!!\n")
 			if _, err = storageutil.ProcessStorage(podcheckpoint.Spec.Storage, containerStatus.Name, "upload", ossSecret); err != nil {
 				fmt.Println(grpc.ErrorDesc(err))
 				// return err

@@ -336,11 +336,11 @@ func getPodCheckpointStatus(filename string, podcheckpointName string) (string, 
 
 	var conf map[string]interface{}
 	getConf(&conf, filename)
-	status := conf["status"].(map[interface{}]interface{})
-	
-	if status == nil {
-		return "", errors.New("podcheckpoint has not status")
+	if conf["status"] == nil {
+		return "", errors.New("podcheckpoint's status is nil")
 	}
+
+	status := conf["status"].(map[interface{}]interface{})
 	podcheckpointStatus := status["phase"].(string)
 
 	return podcheckpointStatus, nil
