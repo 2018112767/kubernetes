@@ -31,13 +31,22 @@ type instrumentedRuntimeService struct {
 }
 
 func (in instrumentedRuntimeService) StartContainerFromCheckpoint(containerID string, checkpoint string, checkpointDir string) error {
-	//TODO implement me
-	return nil
+	const operation = "start_container_from_checkpoint"
+	defer recordOperation(operation, time.Now())
+
+	err := in.service.StartContainerFromCheckpoint(containerID, checkpoint, checkpointDir)
+	recordError(operation, err)
+	return err
 }
 
 func (in instrumentedRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
-	//TODO implement me
-	return nil
+	const operation = "checkpoint_container"
+	defer recordOperation(operation, time.Now())
+
+	err := in.service.CheckpointContainer(containerID, checkpoint, checkpointDir, preDump)
+	recordError(operation, err)
+	return err
+
 }
 
 // Creates an instrumented RuntimeInterface from an existing RuntimeService.

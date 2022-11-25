@@ -3,7 +3,7 @@ Copyright (c) 2014-2020 CGCL Labs
 Container_Migrate is licensed under Mulan PSL v2.
 You can use this software according to the terms and conditions of the Mulan PSL v2.
 You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
+        http://license.coscl.org.cn/MulanPSL2
 THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
@@ -16,7 +16,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+   http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,7 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+// const DefaultCheckpointDir = "/var/lib/docker/containers"
 const DefaultCheckpointDir = "/tmp"
 
 type OSSOption struct {
@@ -54,8 +55,8 @@ const (
 	CLEAR      = "clear"
 )
 
-func ProcessStorage(storage string, checkpointID string, op string, secret *v1.Secret) (string, error) {
-	klog.Warningln("Start Process Storage! storage = ", storage)
+func ProcessStorage(storage string, containerID string, checkpointID string, op string, secret *v1.Secret) (string, error) {
+	klog.Infoln("Start Process Storage! storage = ", storage)
 	var (
 		checkpointDir string
 		err           error
@@ -63,64 +64,74 @@ func ProcessStorage(storage string, checkpointID string, op string, secret *v1.S
 
 	start := strings.Index(storage, "://")
 	if start == 0 {
-		fmt.Println("Error: Storage format is invalid")
+		klog.Infoln("Error: Storage format is invalid")
 		return "", nil
 	}
 
 	prefix := storage[0:start]
 	path := storage[start+3:]
-	klog.Warningln("prefix = ", prefix)
-	klog.Warningln("path = ", path)
 
+	// /var/lib/docker/containers/{$dockerid}/checkpoints/{$checkpoint_name}
 	if prefix == "oss" {
+		//checkpointDir = DefaultCheckpointDir + "/" + containerID + "/checkpoints"
 		checkpointDir = DefaultCheckpointDir
 		ossOption := getOssOptionFromStorage(path, secret)
+		//ossOption.ObjectName = checkpointID + "/" + checkpointName
 		ossOption.ObjectName = checkpointID
-		klog.Warningln("ossOption: %v", ossOption)
+
+		fmt.Printf("ossOption: %v", ossOption)
 		if op == DOWNLOAD {
-			klog.Warningln("invoke DOWNLOAD")
-			if err = downloadCheckpoint(ossOption); err != nil {
+			klog.Infoln("invoke DOWNLOAD")
+			downloadPath := checkpointDir + "/" + checkpointID + ".tar.gz"
+			klog.Infoln("downloadPath = ", downloadPath)
+			if err = downloadCheckpoint(ossOption, downloadPath); err != nil {
 				handleError(err)
 				return "", err
 			}
-			c := exec.Command("tar", "-xvjf", checkpointDir+"/"+ossOption.ObjectName+".tar.gz", "-C", "/")
+			c := exec.Command("tar", "-xvjf", downloadPath, "-C", "/")
 			if err = c.Run(); err != nil {
-				fmt.Println("Error: ", err)
+				klog.Infoln("Error: ", err)
 			}
 		} else if op == UPLOAD {
-			klog.Warningln("invoke UPLOAD")
-			c := exec.Command("tar", "-cvjf", checkpointDir+"/"+ossOption.ObjectName+".tar.gz", checkpointDir+"/"+checkpointID)
+			klog.Infoln("invoke UPLOAD")
+
+			checkpointFilePath := checkpointDir + "/" + checkpointID
+			uploadPath := checkpointDir + "/" + ossOption.ObjectName + ".tar.gz"
+
+			klog.Infoln("uploadPath = ", uploadPath)
+			klog.Infoln("checkpointFilePath = ", checkpointFilePath)
+			c := exec.Command("tar", "-cvjf", uploadPath, checkpointFilePath)
 			if err = c.Run(); err != nil {
-				fmt.Println("Error: ", err)
+				klog.Infoln("Error: ", err)
 			}
-			if err = uploadCheckpoint(ossOption); err != nil {
+			if err = uploadCheckpoint(ossOption, uploadPath); err != nil {
 				handleError(err)
 				return "", err
 			}
 		} else if op == CHECKPOINT {
-			klog.Warningln("invoke CHECKPOINT")
+			klog.Infoln("invoke CHECKPOINT")
 			return checkpointDir, nil
 		} else if op == CLEAR {
-			klog.Warningln("invoke CLEAR")
-			klog.Warningln("entering clear, remove checkpoint files, file path is: ", checkpointDir+"/"+checkpointID+"*")
-			Cmd := "rm -rf " + checkpointDir + "/" + checkpointID + "*"
+			klog.Infoln("invoke CLEAR")
+			klog.Infoln("entering clear, remove checkpoint files, file path is: ", checkpointDir+"/"+checkpointID+"*")
+			Cmd := "rm -rf " + checkpointDir + "/crtest*"
 			c := exec.Command("bash", "-c", Cmd)
 			if err = c.Run(); err != nil {
-				fmt.Println("Error: ", err)
+				klog.Infoln("Error: ", err)
 			}
 		}
 	} else if prefix == "file" {
 		checkpointDir = path
-		klog.Warningln("checkpointDir is %s\n", path)
+		klog.Infoln("checkpointDir is %s\n", path)
 	}
 	return checkpointDir, nil
 }
 
 func handleError(err error) {
-	fmt.Println("Error:", err)
+	klog.Infoln("Error:", err)
 }
 
-func downloadCheckpoint(option *OSSOption) error {
+func downloadCheckpoint(option *OSSOption, path string) error {
 	client, err := oss.New(option.Endpoint, option.AccessKeyId, option.AccessKeySecret)
 	if err != nil {
 		return err
@@ -129,12 +140,12 @@ func downloadCheckpoint(option *OSSOption) error {
 	if err != nil {
 		return err
 	}
-	path := DefaultCheckpointDir + "/" + option.ObjectName + ".tar.gz"
+
 	err = bucket.GetObjectToFile(option.ObjectName, path)
 	return err
 }
 
-func uploadCheckpoint(option *OSSOption) error {
+func uploadCheckpoint(option *OSSOption, path string) error {
 	client, err := oss.New(option.Endpoint, option.AccessKeyId, option.AccessKeySecret)
 	if err != nil {
 		return err
@@ -143,13 +154,22 @@ func uploadCheckpoint(option *OSSOption) error {
 	if err != nil {
 		return err
 	}
-	path := DefaultCheckpointDir + "/" + option.ObjectName + ".tar.gz"
 	err = bucket.PutObjectFromFile(option.ObjectName, path)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func MoveCheckpointFileToContainerDirectory(srcPath string, dstPath string) error {
+	Cmd := "mv " + srcPath + " " + dstPath
+	c := exec.Command("bash", "-c", Cmd)
+	err := c.Run()
+	if err != nil {
+		klog.Infoln("Error: ", err)
+	}
+	return err
 }
 
 func getOssOptionFromStorage(storage string, secret *v1.Secret) *OSSOption {
@@ -160,7 +180,7 @@ func getOssOptionFromStorage(storage string, secret *v1.Secret) *OSSOption {
 	//fmt.Printf("secret: %v", secret)
 
 	if back == "" {
-		fmt.Println("PodCheckpoint.Spec.Storage is invalid")
+		klog.Infoln("PodCheckpoint.Spec.Storage is invalid")
 		return nil
 	}
 

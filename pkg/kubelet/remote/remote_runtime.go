@@ -232,9 +232,9 @@ func (r *RemoteRuntimeService) StartContainerFromCheckpoint(containerID string, 
 	defer cancel()
 
 	_, err := r.runtimeClient.StartContainerFromCheckpoint(ctx, &runtimeapi.StartContainerFromCheckpointRequest{
-		ContainerId:   containerID,
-		Checkpoint:    checkpoint,
-		CheckpointDir: checkpointDir,
+		ContainerId: containerID,
+		Checkpoint:  checkpoint,
+		//CheckpointDir: checkpointDir,
 	})
 	if err != nil {
 		klog.Errorf("StartContainerFromCheckpoint %q from runtime service failed: %v", containerID, err)
@@ -246,7 +246,7 @@ func (r *RemoteRuntimeService) StartContainerFromCheckpoint(containerID string, 
 
 // StartContainerFromCheckpoint starts the containe from checkpoint
 func (r *RemoteRuntimeService) CheckpointContainer(containerID string, checkpoint string, checkpointDir string, preDump bool) error {
-	klog.Warningln("Invoke RemoteRuntimeService.CheckpointContainer")
+	klog.Errorln("Invoke RemoteRuntimeService.CheckpointContainer")
 	ctx, cancel := getContextWithTimeout(r.timeout)
 	defer cancel()
 

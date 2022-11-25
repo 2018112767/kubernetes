@@ -3,6 +3,8 @@ kind: Pod  # 对象类型，pod
 metadata:  # 元数据
   name: crtest # POD名称
   namespace: default # 所属的命名空间
+  annotations:
+    podCheckpoint: podcheckpoint-sample
 spec: # specification of the resource content(资源内容的规范)
   containers: # 容器列表
     - name: crtest # 容器名称

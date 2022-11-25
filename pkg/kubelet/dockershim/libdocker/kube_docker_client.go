@@ -178,6 +178,9 @@ func (d *kubeDockerClient) StartContainerFromCheckpoint(id string, checkpoint st
 
 func (d *kubeDockerClient) CheckpointContainer(id string, checkpoint string, checkpointDir string, preDump bool) error {
 	klog.Warningln("Invoke kubeDockerClient.CheckpointContainer")
+	klog.Infoln("checkpoint = ", checkpoint)
+	klog.Infoln("checkpointDir = ", checkpointDir)
+	klog.Infoln("preDump = ", preDump)
 
 	ctx, cancel := d.getTimeoutContext()
 	defer cancel()

@@ -667,6 +667,7 @@ func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1
 	iterCount := 0
 	finalDump := false
 	for {
+		klog.Infoln("start NO.", iterCount, " pre-dump")
 		if preDump {
 			finalDump = false
 			for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
@@ -680,13 +681,17 @@ func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1
 			}
 			iterCount = iterCount + 1
 			preDump = finalDump
+			if iterCount > 3 {
+				preDump = false
+			}
 		} else {
 			break
 		}
+		klog.Infoln("NO.", iterCount, " pre-dump succeed!!!")
 	}
 	klog.Infof("Final Dump!!!")
 	for i := 0; i < len(pod.Status.ContainerStatuses); i++ {
-		klog.Warningln("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
+		fmt.Printf("traverse containerStatus : %v", pod.Status.ContainerStatuses[i])
 		podcheckpoint.Status.ContainerConditions[i].CheckpointPhase = v1alpha1.ContainerCheckpointing
 		_, err := m.checkpointContainer(pod, &(pod.Status.ContainerStatuses[i]), podcheckpoint, secret, preDump, iterCount)
 		if err != nil {

@@ -33,13 +33,21 @@ type instrumentedInterface struct {
 }
 
 func (in instrumentedInterface) StartContainerFromCheckpoint(id string, checkpoint string, checkpointDir string) error {
-	//TODO implement me
-	return nil
+	const operation = "start_container_from_checkpoint"
+	defer recordOperation(operation, time.Now())
+
+	err := in.client.StartContainerFromCheckpoint(id, checkpoint, checkpointDir)
+	recordError(operation, err)
+	return err
 }
 
 func (in instrumentedInterface) CheckpointContainer(id string, checkpoint string, checkpointDir string, preDump bool) error {
-	//TODO implement me
-	return nil
+	const operation = "checkpoint_container"
+	defer recordOperation(operation, time.Now())
+
+	err := in.client.CheckpointContainer(id, checkpoint, checkpointDir, preDump)
+	recordError(operation, err)
+	return err
 }
 
 // NewInstrumentedInterface creates an instrumented Interface from an existing Interface.
