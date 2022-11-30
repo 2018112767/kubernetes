@@ -231,7 +231,7 @@ func (o *MigrateOptions) RunCreateNewPod(home string, podcheckpointName string, 
 	//获取原节点pod的相关信息
 	getConfCmd := "kubectl get pod " + podName + " -o yaml > " + inFilepath
 
-	logrus.Info("getConfCmd is ", getConfCmd)
+	logrus.Infoln("getConfCmd is ", getConfCmd)
 	c := exec.Command("bash", "-c", getConfCmd)
 	if err = c.Run(); err != nil {
 		return err
@@ -240,7 +240,7 @@ func (o *MigrateOptions) RunCreateNewPod(home string, podcheckpointName string, 
 	//删除原节点pod
 	deleteCmd := "kubectl delete pod " + podName
 
-	logrus.Debug("deleteCmd is ", deleteCmd)
+	logrus.Infoln("deleteCmd is ", deleteCmd)
 	c = exec.Command("bash", "-c", deleteCmd)
 	if err = c.Run(); err != nil {
 		return err
@@ -251,7 +251,7 @@ func (o *MigrateOptions) RunCreateNewPod(home string, podcheckpointName string, 
 
 	//创建新pod
 	createCmd := "kubectl create -f " + outFilepath
-	logrus.Debug("createCmd is ", createCmd)
+	logrus.Infoln("createCmd is ", createCmd)
 	c = exec.Command("bash", "-c", createCmd)
 	if err = c.Run(); err != nil {
 		return err
@@ -294,6 +294,9 @@ func HandleYamlFile(inFile string, outFile string, nodeName string, podcheckpoin
 
 	// 指定要调度的目标节点
 	spec["nodeName"] = nodeName
+	if spec["nodeSelector"] != nil {
+		spec["migrate"] = nil
+	}
 
 	//添加一条annotation
 	// podCheckpoint： podcheckpointName

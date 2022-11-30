@@ -663,9 +663,9 @@ func (m *kubeGenericRuntimeManager) CheckpointPod(pod *v1.Pod, podcheckpoint *v1
 	succeeded_once := false
 	failed_once := false
 
-	preDump := true
+	preDump := false
 	iterCount := 0
-	finalDump := false
+	finalDump := true
 	for {
 		klog.Infoln("start NO.", iterCount, " pre-dump")
 		if preDump {

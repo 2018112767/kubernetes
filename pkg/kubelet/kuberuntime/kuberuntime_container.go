@@ -114,6 +114,7 @@ func (m *kubeGenericRuntimeManager) checkpointContainer(pod *v1.Pod, containerSt
 			err = m.runtimeService.CheckpointContainer(containerStatus.ContainerID[9:], checkpointID, checkpointDir, preDump)
 			if err != nil {
 				fmt.Println(grpc.ErrorDesc(err))
+				storageutil.ProcessStorage(podcheckpoint.Spec.Storage, containerStatus.ContainerID[9:], containerStatus.Name, "clear", ossSecret)
 				return false, err
 			}
 
@@ -129,12 +130,13 @@ func (m *kubeGenericRuntimeManager) checkpointContainer(pod *v1.Pod, containerSt
 			err = m.runtimeService.CheckpointContainer(containerStatus.ContainerID[9:], containerStatus.Name, checkpointDir, preDump)
 			if err != nil {
 				fmt.Println(grpc.ErrorDesc(err))
+				storageutil.ProcessStorage(podcheckpoint.Spec.Storage, containerStatus.ContainerID[9:], containerStatus.Name, "clear", ossSecret)
 				return false, err
 			}
 
-			fmt.Println("checkpointContainer succeeed!!!\n")
+			klog.Infof("checkpointContainer succeeed!!!\n")
 			if _, err = storageutil.ProcessStorage(podcheckpoint.Spec.Storage, containerStatus.ContainerID[9:], containerStatus.Name, "upload", ossSecret); err != nil {
-				fmt.Println(grpc.ErrorDesc(err))
+				klog.Errorln(grpcstatus.Convert(err))
 				// return err
 			}
 			klog.Infof("complete upload, clear checkpoint file; container name is:", containerStatus.Name)
@@ -287,7 +289,7 @@ func (m *kubeGenericRuntimeManager) startContainer(podSandboxID string, podSandb
 						m.recordContainerEvent(pod, container, containerID, v1.EventTypeWarning, events.FailedToStartContainer, "Error: %v", grpc.ErrorDesc(err))
 						return grpc.ErrorDesc(err), kubecontainer.ErrRunContainer
 					} else {
-						fmt.Println("Succeed to DownLoad Checkpoint File")
+						klog.Infoln("Succeed to DownLoad Checkpoint File")
 					}
 					// move /tmp/*  to /var/lib/docker/containers/{$dockerid}/checkpoints/{$checkpoint_name}
 					srcPath := checkpointDir + "/" + checkpointID
@@ -305,7 +307,8 @@ func (m *kubeGenericRuntimeManager) startContainer(podSandboxID string, podSandb
 					err = m.runtimeService.StartContainerFromCheckpoint(containerID, checkpointID, checkpointDir)
 
 					if err != nil {
-						fmt.Printf("StartContainerFromCheckpoint Failed:%v", grpc.ErrorDesc(err))
+						klog.Infoln("StartContainerFromCheckpoint Failed:%v", grpc.ErrorDesc(err))
+						storageutil.ProcessStorage(storage, containerID, checkpointID, "clear", ossSecret)
 						m.recordContainerEvent(pod, container, containerID, v1.EventTypeWarning, events.FailedToStartContainer, "Error: %v", grpc.ErrorDesc(err))
 						return grpc.ErrorDesc(err), kubecontainer.ErrRunContainer
 					} else {
